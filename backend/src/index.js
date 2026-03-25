@@ -7,6 +7,7 @@ import swaggerUi from "swagger-ui-express";
 import paymentsRouter from "./routes/payments.js";
 import merchantsRouter from "./routes/merchants.js";
 import { requireApiKeyAuth } from "./lib/auth.js";
+import { supabase } from "./lib/supabase.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -33,8 +34,26 @@ app.use(cors({
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 
-app.get("/health", (req, res) => {
-  res.json({ ok: true, service: "stellar-payment-api" });
+app.get("/health", async (req, res) => {
+  try {
+    const { error } = await supabase.from("merchants").select("id").limit(1);
+
+    if (error) {
+      return res.status(503).json({
+        ok: false,
+        service: "stellar-payment-api",
+        error: "Database unavailable"
+      });
+    }
+
+    res.json({ ok: true, service: "stellar-payment-api" });
+  } catch {
+    res.status(503).json({
+      ok: false,
+      service: "stellar-payment-api",
+      error: "Database unavailable"
+    });
+  }
 });
 
 app.use("/api/create-payment", requireApiKeyAuth());
