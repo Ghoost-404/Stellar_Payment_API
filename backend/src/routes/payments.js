@@ -6,6 +6,7 @@ import { findMatchingPayment } from "../lib/stellar.js";
 import { sendWebhook } from "../lib/webhooks.js";
 import rateLimit from "express-rate-limit";
 import { validateUuidParam } from "../lib/validate-uuid.js";
+import { validateCreatePayment } from "../lib/payment-validation.js";
 
 const router = express.Router();
 
@@ -16,42 +17,6 @@ const verifyPaymentRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-const REQUIRED_FIELDS = ["amount", "asset", "recipient"];
-
-const VALID_MEMO_TYPES = ["text", "id", "hash", "return"];
-
-function validateCreatePayment(body) {
-  for (const field of REQUIRED_FIELDS) {
-    if (!body[field]) {
-      return `Missing field: ${field}`;
-    }
-  }
-
-  if (Number.isNaN(Number(body.amount)) || Number(body.amount) <= 0) {
-    return "Amount must be a positive number";
-  }
-
-  const asset = String(body.asset || "").toUpperCase();
-  if (asset !== "XLM" && !body.asset_issuer) {
-    return "asset_issuer is required for non-native assets";
-  }
-
-  if (body.memo && !body.memo_type) {
-    return "memo_type is required when memo is provided";
-  }
-  if (body.memo_type && !body.memo) {
-    return "memo is required when memo_type is provided";
-  }
-  if (
-    body.memo_type &&
-    !VALID_MEMO_TYPES.includes(body.memo_type.toLowerCase())
-  ) {
-    return `Invalid memo_type. Must be one of: ${VALID_MEMO_TYPES.join(", ")}`;
-  }
-
-  return null;
-}
 
 /**
  * @swagger
@@ -69,7 +34,7 @@ function validateCreatePayment(body) {
  *             properties:
  *               amount:
  *                 type: number
- *                 description: Payment amount (must be positive)
+ *                 description: Payment amount (must be positive and at least 0.01 XLM for native payments)
  *               asset:
  *                 type: string
  *                 description: Asset code (e.g. XLM, USDC)
