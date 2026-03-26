@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useHydrateMerchantStore } from "@/lib/merchant-store";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -9,6 +10,8 @@ export default function Navbar() {
     (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? "testnet").toLowerCase();
   const isMainnet = network === "public" || network === "mainnet";
   const networkLabel = isMainnet ? "MAINNET" : "TESTNET";
+
+  useHydrateMerchantStore();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);

@@ -4,20 +4,100 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import CopyButton from "@/components/CopyButton";
 import toast from "react-hot-toast";
+import {
+  useHydrateMerchantStore,
+  useMerchantApiKey,
+  useMerchantHydrated,
+  useSetMerchantApiKey,
+} from "@/lib/merchant-store";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+const DEFAULT_BRANDING = {
+  primary_color: "#5ef2c0",
+  secondary_color: "#b8ffe2",
+  background_color: "#050608",
+};
+
+type SettingsTab = "api" | "branding";
+
+function normalizeHexInput(value: string) {
+  const trimmed = value.trim();
+  return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+}
+
+function hexToRgb(hex: string) {
+  const clean = hex.replace("#", "");
+  const full = clean.length === 3
+    ? clean.split("").map((c) => `${c}${c}`).join("")
+    : clean;
+  const int = Number.parseInt(full, 16);
+
+  return {
+    r: (int >> 16) & 255,
+    g: (int >> 8) & 255,
+    b: int & 255,
+  };
+}
+
+function luminance(hex: string) {
+  const { r, g, b } = hexToRgb(hex);
+  const transform = (value: number) => {
+    const channel = value / 255;
+    return channel <= 0.03928
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4;
+  };
+
+  return 0.2126 * transform(r) + 0.7152 * transform(g) + 0.0722 * transform(b);
+}
+
+function contrastRatio(foregroundHex: string, backgroundHex: string) {
+  const l1 = luminance(foregroundHex);
+  const l2 = luminance(backgroundHex);
+  const brighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+
+  return (brighter + 0.05) / (darker + 0.05);
+}
 
 // ─── Eye icon (show / hide key) ──────────────────────────────────────────────
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8}>
-      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+    >
+      <path
+        d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   ) : (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8}>
-      <path d="M17.94 17.94A10.1 10.1 0 0 1 12 19c-6.4 0-10-7-10-7a18.1 18.1 0 0 1 5.06-5.94M9.9 4.24A9.1 9.1 0 0 1 12 4c6.4 0 10 7 10 7a18.1 18.1 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+    >
+      <path
+        d="M17.94 17.94A10.1 10.1 0 0 1 12 19c-6.4 0-10-7-10-7a18.1 18.1 0 0 1 5.06-5.94M9.9 4.24A9.1 9.1 0 0 1 12 4c6.4 0 10 7 10 7a18.1 18.1 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" />
     </svg>
   );
@@ -33,20 +113,47 @@ function mask(key: string) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const apiKey = useMerchantApiKey();
+  const hydrated = useMerchantHydrated();
+  const setApiKey = useSetMerchantApiKey();
+
   const [revealed, setRevealed] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
 
   // Rotation flow state
   const [confirming, setConfirming] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [rotateError, setRotateError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<SettingsTab>("api");
+  const [branding, setBranding] = useState(DEFAULT_BRANDING);
+  const [brandingError, setBrandingError] = useState<string | null>(null);
+  const [loadingBranding, setLoadingBranding] = useState(false);
+  const [savingBranding, setSavingBranding] = useState(false);
 
-  // Load from localStorage after hydration to avoid SSR mismatch
+  useHydrateMerchantStore();
+
   useEffect(() => {
-    setApiKey(localStorage.getItem("merchant_api_key"));
-    setHydrated(true);
-  }, []);
+    if (!apiKey) return;
+
+    const loadBranding = async () => {
+      setLoadingBranding(true);
+      setBrandingError(null);
+      try {
+        const res = await fetch(`${API_URL}/api/merchant-branding`, {
+          headers: { "x-api-key": apiKey },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to load branding");
+        setBranding(data.branding_config ?? DEFAULT_BRANDING);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Failed to load branding";
+        setBrandingError(msg);
+      } finally {
+        setLoadingBranding(false);
+      }
+    };
+
+    loadBranding();
+  }, [apiKey]);
 
   const startRotate = () => {
     setRotateError(null);
@@ -72,17 +179,62 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error(data.error ?? "Failed to rotate key");
 
       const newKey: string = data.api_key;
-      localStorage.setItem("merchant_api_key", newKey);
       setApiKey(newKey);
       setRevealed(true); // show the new key immediately
       setConfirming(false);
-      toast.success("API key rotated — update any integrations using the old key.");
+      toast.success(
+        "API key rotated — update any integrations using the old key.",
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to rotate key";
       setRotateError(msg);
       toast.error(msg);
     } finally {
       setRotating(false);
+    }
+  };
+
+  const updateBrandingField = (
+    key: keyof typeof DEFAULT_BRANDING,
+    value: string,
+  ) => {
+    setBranding((current) => ({
+      ...current,
+      [key]: normalizeHexInput(value),
+    }));
+  };
+
+  const saveBranding = async () => {
+    if (!apiKey) return;
+    setBrandingError(null);
+
+    for (const [key, color] of Object.entries(branding)) {
+      if (!HEX_COLOR_REGEX.test(color)) {
+        setBrandingError(`${key} must be a valid hex color`);
+        return;
+      }
+    }
+
+    setSavingBranding(true);
+    try {
+      const res = await fetch(`${API_URL}/api/merchant-branding`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+        },
+        body: JSON.stringify(branding),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to save branding");
+      setBranding(data.branding_config ?? branding);
+      toast.success("Branding saved");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save branding";
+      setBrandingError(msg);
+      toast.error(msg);
+    } finally {
+      setSavingBranding(false);
     }
   };
 
@@ -94,12 +246,16 @@ export default function SettingsPage() {
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-8 px-6 py-16">
         <header className="flex flex-col gap-3 text-center">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-mint">Settings</p>
+          <p className="font-mono text-xs uppercase tracking-[0.3em] text-mint">
+            Settings
+          </p>
           <h1 className="text-3xl font-bold text-white">Merchant Settings</h1>
         </header>
 
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-8 text-center">
-          <p className="text-base font-medium text-yellow-200">No API key found</p>
+          <p className="text-base font-medium text-yellow-200">
+            No API key found
+          </p>
           <p className="text-sm text-slate-400">
             Register a merchant account first to manage your credentials here.
           </p>
@@ -115,22 +271,59 @@ export default function SettingsPage() {
   }
 
   const displayKey = revealed ? apiKey : mask(apiKey);
+  const primaryOnBackground = contrastRatio(
+    branding.primary_color,
+    branding.background_color,
+  );
+  const secondaryOnBackground = contrastRatio(
+    branding.secondary_color,
+    branding.background_color,
+  );
+  const lowContrastWarning =
+    primaryOnBackground < 4.5 || secondaryOnBackground < 3;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-10 px-6 py-16">
       {/* ── Header ── */}
       <header className="flex flex-col gap-3 text-center">
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-mint">Settings</p>
+        <p className="font-mono text-xs uppercase tracking-[0.3em] text-mint">
+          Settings
+        </p>
         <h1 className="text-3xl font-bold text-white">Merchant Settings</h1>
         <p className="text-sm text-slate-400">
-          Manage your API credentials. Keep your key secret — treat it like a password.
+          Manage your API credentials. Keep your key secret — treat it like a
+          password.
         </p>
       </header>
 
       {/* ── Main card ── */}
       <div className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
-        <div className="flex flex-col gap-8">
+        <div className="mb-6 flex gap-2 rounded-xl border border-white/10 bg-black/30 p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("api")}
+            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium ${
+              activeTab === "api"
+                ? "bg-white text-black"
+                : "text-slate-300 hover:bg-white/10"
+            }`}
+          >
+            API Keys
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("branding")}
+            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium ${
+              activeTab === "branding"
+                ? "bg-white text-black"
+                : "text-slate-300 hover:bg-white/10"
+            }`}
+          >
+            Branding
+          </button>
+        </div>
 
+        {activeTab === "api" ? <div className="flex flex-col gap-8">
           {/* API Key section */}
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -161,7 +354,8 @@ export default function SettingsPage() {
             </div>
 
             <p className="text-[11px] text-slate-600">
-              Pass this as the <code className="text-slate-500">x-api-key</code> header on every API request.
+              Pass this as the <code className="text-slate-500">x-api-key</code>{" "}
+              header on every API request.
             </p>
           </section>
 
@@ -203,8 +397,8 @@ export default function SettingsPage() {
                   Are you sure? This cannot be undone.
                 </p>
                 <p className="text-xs text-slate-400">
-                  The old key will stop working immediately. Make sure to update all your
-                  integrations with the new key.
+                  The old key will stop working immediately. Make sure to update
+                  all your integrations with the new key.
                 </p>
                 <div className="flex gap-3">
                   <button
@@ -215,9 +409,24 @@ export default function SettingsPage() {
                   >
                     {rotating ? (
                       <span className="flex items-center gap-2">
-                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        <svg
+                          className="h-4 w-4 animate-spin"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
                         </svg>
                         Rotating…
                       </span>
@@ -237,13 +446,101 @@ export default function SettingsPage() {
               </div>
             )}
           </section>
-        </div>
+        </div> : (
+          <section className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                Checkout Branding
+              </h2>
+              <p className="text-sm text-slate-500">
+                Set default checkout colors. These values are exposed as CSS variables and can be overridden per session.
+              </p>
+            </div>
+
+            {brandingError && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+                {brandingError}
+              </div>
+            )}
+            {lowContrastWarning && (
+              <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-100">
+                Selected colors may not meet WCAG contrast targets (4.5:1 for body text). Consider adjusting primary or background colors.
+              </div>
+            )}
+
+            <div className="grid gap-4">
+              {([
+                ["primary_color", "Primary Color"],
+                ["secondary_color", "Secondary Color"],
+                ["background_color", "Background Color"],
+              ] as const).map(([field, label]) => (
+                <label key={field} className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                    {label}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={branding[field]}
+                      onChange={(e) => updateBrandingField(field, e.target.value)}
+                      className="h-10 w-16 rounded border border-white/10 bg-transparent p-1"
+                    />
+                    <input
+                      type="text"
+                      value={branding[field]}
+                      onChange={(e) => updateBrandingField(field, e.target.value)}
+                      className="flex-1 rounded-xl border border-white/10 bg-black/40 p-2 font-mono text-sm text-white"
+                    />
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div
+              className="rounded-2xl border border-white/10 p-5"
+              style={{ background: branding.background_color }}
+            >
+              <p className="mb-3 text-xs uppercase tracking-[0.2em]" style={{ color: branding.secondary_color }}>
+                Preview
+              </p>
+              <div className="rounded-xl border p-4" style={{ borderColor: `${branding.secondary_color}66` }}>
+                <p style={{ color: branding.secondary_color }}>Sample checkout card</p>
+                <button
+                  type="button"
+                  className="mt-3 rounded-lg px-4 py-2 font-semibold"
+                  style={{
+                    background: branding.primary_color,
+                    color: contrastRatio(branding.primary_color, "#000000") > 5 ? "#000000" : "#ffffff",
+                  }}
+                >
+                  Pay Now
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={saveBranding}
+              disabled={loadingBranding || savingBranding}
+              className="h-11 rounded-xl bg-mint font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {savingBranding ? "Saving..." : loadingBranding ? "Loading..." : "Save Branding"}
+            </button>
+          </section>
+        )}
       </div>
 
       {/* Footer nav */}
       <footer className="flex justify-center gap-6 text-xs text-slate-500">
-        <Link href="/" className="hover:text-slate-300 transition-colors">Dashboard</Link>
-        <Link href="/dashboard/create" className="hover:text-slate-300 transition-colors">Create Payment</Link>
+        <Link href="/" className="hover:text-slate-300 transition-colors">
+          Dashboard
+        </Link>
+        <Link
+          href="/dashboard/create"
+          className="hover:text-slate-300 transition-colors"
+        >
+          Create Payment
+        </Link>
       </footer>
     </main>
   );

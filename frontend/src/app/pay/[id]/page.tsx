@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "next/navigation";
 import { isFreighterAvailable } from "@/lib/freighter";
 import { usePayment } from "@/lib/usePayment";
@@ -30,7 +30,18 @@ interface PaymentDetails {
   status: string; // pending | confirmed | completed | failed
   tx_id: string | null;
   created_at: string;
+  branding_config?: {
+    primary_color?: string;
+    secondary_color?: string;
+    background_color?: string;
+  } | null;
 }
+
+const DEFAULT_CHECKOUT_THEME = {
+  primary_color: "#5ef2c0",
+  secondary_color: "#b8ffe2",
+  background_color: "#050608",
+};
 
 // ─── Asset badge ────────────────────────────────────────────────────────────
 
@@ -244,9 +255,9 @@ export default function PaymentPage() {
       <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-6 py-16">
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-8 text-center">
           <p className="text-sm font-medium uppercase tracking-wider text-red-400">Error</p>
-          <p className="mt-3 text-lg font-semibold text-white">
+          <h1 className="mt-3 text-lg font-semibold text-white">
             {fetchError ?? "Payment not found"}
-          </p>
+          </h1>
           <p className="mt-2 text-sm text-slate-400">
             Check the payment link and try again, or contact the sender.
           </p>
@@ -257,6 +268,10 @@ export default function PaymentPage() {
 
   const isSettled = payment.status === "confirmed" || payment.status === "completed";
   const isFailed  = payment.status === "failed";
+  const checkoutTheme = {
+    ...DEFAULT_CHECKOUT_THEME,
+    ...(payment.branding_config || {}),
+  };
 
   return (
     <>
@@ -273,10 +288,21 @@ export default function PaymentPage() {
         </div>
       )}
 
-      <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-8 px-6 py-16">
+      <main
+        className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-8 px-6 py-16"
+        style={
+          {
+            "--checkout-primary": checkoutTheme.primary_color,
+            "--checkout-secondary": checkoutTheme.secondary_color,
+            "--checkout-bg": checkoutTheme.background_color,
+            background:
+              "radial-gradient(1200px circle at 10% -10%, color-mix(in srgb, var(--checkout-primary) 18%, #15233b) 0%, var(--checkout-bg) 45%, #050608 100%)",
+          } as CSSProperties
+        }
+      >
         {/* ── Page header ── */}
         <header className="flex flex-col gap-2">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-mint">
+          <p className="font-mono text-xs uppercase tracking-[0.3em]" style={{ color: "var(--checkout-primary)" }}>
             Payment Request
           </p>
           <h1 className="text-3xl font-bold text-white">Complete Payment</h1>
@@ -298,7 +324,7 @@ export default function PaymentPage() {
                   maximumFractionDigits: 7,
                 })}
               </span>
-              <span className="text-2xl font-semibold text-slate-400">
+              <span className="text-2xl font-semibold" style={{ color: "var(--checkout-secondary)" }}>
                 {payment.asset.toUpperCase()}
               </span>
             </div>
@@ -394,7 +420,10 @@ export default function PaymentPage() {
                     type="button"
                     onClick={handlePay}
                     disabled={isProcessing}
-                    className="group relative flex h-12 w-full items-center justify-center rounded-xl bg-mint font-bold text-black transition-all hover:bg-glow disabled:cursor-not-allowed disabled:opacity-50"
+                    className="group relative flex h-12 w-full items-center justify-center rounded-xl font-bold text-black transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{
+                      backgroundColor: "var(--checkout-primary)",
+                    }}
                   >
                     {isProcessing ? (
                       <span className="flex items-center gap-2">
@@ -407,7 +436,10 @@ export default function PaymentPage() {
                     ) : (
                       "Pay with Freighter"
                     )}
-                    <div className="absolute inset-0 -z-10 bg-mint/20 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
+                    <div
+                      className="absolute inset-0 -z-10 opacity-0 blur-xl transition-opacity group-hover:opacity-100"
+                      style={{ backgroundColor: "color-mix(in srgb, var(--checkout-primary) 20%, transparent)" }}
+                    />
                   </button>
                 ) : (
                   <div className="flex flex-col gap-3">
@@ -418,7 +450,12 @@ export default function PaymentPage() {
                       href="https://freighter.app/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex h-12 items-center justify-center rounded-xl border border-mint/50 font-semibold text-mint transition-all hover:bg-mint/10"
+                    className="flex h-12 items-center justify-center rounded-xl border font-semibold transition-all"
+                    style={{
+                      borderColor: "color-mix(in srgb, var(--checkout-primary) 50%, transparent)",
+                      color: "var(--checkout-primary)",
+                      backgroundColor: "color-mix(in srgb, var(--checkout-primary) 10%, transparent)",
+                    }}
                     >
                       Install Freighter Extension
                     </a>
@@ -429,8 +466,14 @@ export default function PaymentPage() {
 
             {/* Settled success note */}
             {isSettled && (
-              <div className="rounded-xl border border-mint/30 bg-mint/5 p-4 text-center">
-                <p className="text-sm font-semibold text-mint">
+              <div
+                className="rounded-xl border p-4 text-center"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--checkout-primary) 30%, transparent)",
+                  backgroundColor: "color-mix(in srgb, var(--checkout-primary) 7%, transparent)",
+                }}
+              >
+                <p className="text-sm font-semibold" style={{ color: "var(--checkout-primary)" }}>
                   This payment has been received.
                 </p>
                 <p className="mt-1 text-xs text-slate-400">

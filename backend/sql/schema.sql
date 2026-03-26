@@ -5,6 +5,7 @@ create table if not exists merchants (
   notification_email text not null,
   api_key text unique not null,
   webhook_secret text not null,
+  branding_config jsonb,
   created_at timestamptz not null default now()
 );
 

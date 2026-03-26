@@ -1,29 +1,13 @@
 import express from "express";
 import { randomBytes } from "crypto";
 import { supabase } from "../lib/supabase.js";
+import {
+  registerMerchantZodSchema,
+  sessionBrandingSchema,
+} from "../lib/request-schemas.js";
+import { resolveBrandingConfig } from "../lib/branding.js";
 
 const router = express.Router();
-
-const REQUIRED_FIELDS = ["email"];
-
-function validateRegisterMerchant(body) {
-  for (const field of REQUIRED_FIELDS) {
-    if (!body[field]) {
-      return `Missing field: ${field}`;
-    }
-  }
-
-  // Basic email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(body.email)) {
-    return "Invalid email format";
-  }
-  if (body.notification_email && !emailRegex.test(body.notification_email)) {
-    return "Invalid notification_email format";
-  }
-
-  return null;
-}
 
 /**
  * @swagger
@@ -66,14 +50,11 @@ function validateRegisterMerchant(body) {
  */
 router.post("/register-merchant", async (req, res, next) => {
   try {
-    const error = validateRegisterMerchant(req.body || {});
-    if (error) {
-      return res.status(400).json({ error });
-    }
+    const body = registerMerchantZodSchema.parse(req.body || {});
 
-    const { email } = req.body;
-    const business_name = req.body.business_name || email.split("@")[0];
-    const notification_email = req.body.notification_email || email;
+    const { email } = body;
+    const business_name = body.business_name || email.split("@")[0];
+    const notification_email = body.notification_email || email;
 
     // Check if merchant already exists
     const { data: existing } = await supabase
@@ -163,6 +144,52 @@ router.post("/rotate-key", async (req, res, next) => {
     }
 
     res.json({ api_key: newApiKey });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/merchant-branding", async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from("merchants")
+      .select("branding_config")
+      .eq("id", req.merchant.id)
+      .maybeSingle();
+
+    if (error) {
+      error.status = 500;
+      throw error;
+    }
+
+    res.json({
+      branding_config: resolveBrandingConfig({
+        merchantBranding: data?.branding_config || null,
+      }),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/merchant-branding", async (req, res, next) => {
+  try {
+    const brandingConfig = sessionBrandingSchema.parse(req.body || {});
+    const resolved = resolveBrandingConfig({ merchantBranding: brandingConfig });
+
+    const { data, error } = await supabase
+      .from("merchants")
+      .update({ branding_config: resolved })
+      .eq("id", req.merchant.id)
+      .select("branding_config")
+      .single();
+
+    if (error) {
+      error.status = 500;
+      throw error;
+    }
+
+    res.json({ branding_config: data.branding_config });
   } catch (err) {
     next(err);
   }
