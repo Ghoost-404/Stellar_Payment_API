@@ -8,6 +8,7 @@ import CopyButton from "@/components/CopyButton";
 import toast from "react-hot-toast";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import { QRCodeSVG } from "qrcode.react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -310,18 +311,37 @@ export default function PaymentPage() {
           {/* Details */}
           <div className="flex flex-col gap-5 p-8">
 
-            {/* Recipient */}
-            <div className="flex flex-col gap-1.5">
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                Recipient
-              </p>
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 p-3">
-                <code className="flex-1 truncate font-mono text-sm text-slate-200">
-                  {payment.recipient}
-                </code>
-                <CopyButton text={payment.recipient} />
-              </div>
-            </div>
+      {/* Recipient */}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          Recipient
+        </p>
+        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 p-3">
+          <code className="flex-1 truncate font-mono text-sm text-slate-200">
+            {payment.recipient}
+          </code>
+          <CopyButton text={payment.recipient} />
+        </div>
+      </div>
+
+      {/* QR Code */}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          Scan to Pay
+        </p>
+        <div className="flex items-center justify-center rounded-xl border border-white/10 bg-white p-4">
+          <QRCodeSVG
+            value={payment.recipient}
+            size={160}
+            level="M"
+            bgColor="#ffffff"
+            fgColor="#000000"
+          />
+        </div>
+        <p className="text-center text-xs text-slate-500">
+          Scan with Freighter or any Stellar wallet
+        </p>
+      </div>
 
             {/* Date */}
             <div className="flex flex-col gap-1">
