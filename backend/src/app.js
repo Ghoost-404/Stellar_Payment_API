@@ -10,6 +10,7 @@ import createPaymentsRouter from "./routes/payments.js";
 import merchantsRouter from "./routes/merchants.js";
 import metricsRouter from "./routes/metrics.js";
 import webhooksRouter from "./routes/webhooks.js";
+import prometheusRouter from "./routes/prometheus.js";
 
 import { requireApiKeyAuth } from "./lib/auth.js";
 import { isHorizonReachable } from "./lib/stellar.js";
@@ -138,6 +139,9 @@ export async function createApp({ redisClient }) {
   app.use("/api", merchantsRouter);
   app.use("/api", metricsRouter);
   app.use("/api", webhooksRouter);
+
+  // Prometheus Metrics endpoint
+  app.use("/", prometheusRouter);
 
   app.use((err, req, res, next) => {
     if (err instanceof ZodError) {

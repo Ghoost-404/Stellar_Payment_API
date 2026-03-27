@@ -1,6 +1,6 @@
 import express from "express";
 import { requireApiKeyAuth } from "../lib/auth.js";
-import { withMerchantContext } from "../lib/db-rls.js";
+import { withMerchantContext } from "./db-rls.js";
 
 const router = express.Router();
 
