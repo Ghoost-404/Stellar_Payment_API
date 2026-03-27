@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "next/navigation";
-import { isFreighterAvailable } from "@/lib/freighter";
+import { isFreighterAvailable, getFreighterPublicKey } from "@/lib/freighter";
 import { usePayment } from "@/lib/usePayment";
 import CopyButton from "@/components/CopyButton";
 import toast from "react-hot-toast";
@@ -189,7 +189,23 @@ export default function PaymentPage() {
   const [freighterReady, setFreighterReady] = useState(false);
   const [showRawIntent, setShowRawIntent] = useState(false);
 
-  const { isProcessing, status: txStatus, error: paymentError, processPayment } = usePayment();
+  const { isProcessing, status: txStatus, error: paymentError, processPayment, processPathPayment } = usePayment();
+
+  // ── Path payment state ─────────────────────────────────────────────────────
+  interface PathQuote {
+    source_asset: string;
+    source_asset_issuer: string | null;
+    source_amount: string;
+    send_max: string;
+    destination_asset: string;
+    destination_amount: string;
+    path: Array<{ asset_code: string; asset_issuer: string | null }>;
+  }
+
+  const [usePathPayment, setUsePathPayment] = useState(false);
+  const [pathQuote, setPathQuote] = useState<PathQuote | null>(null);
+  const [pathQuoteLoading, setPathQuoteLoading] = useState(false);
+  const [walletAsset, setWalletAsset] = useState<string | null>(null);
 
   // ── Fetch payment details ──────────────────────────────────────────────────
   useEffect(() => {
@@ -241,18 +257,113 @@ export default function PaymentPage() {
       .catch(() => setFreighterReady(false));
   }, []);
 
+  // ── Detect wallet asset mismatch & fetch path quote ────────────────────────
+  useEffect(() => {
+    if (!freighterReady || !payment || payment.status !== "pending") return;
+
+    let cancelled = false;
+
+    const checkWalletAndFetchQuote = async () => {
+      try {
+        const publicKey = await getFreighterPublicKey();
+        const horizonUrl =
+          process.env.NEXT_PUBLIC_HORIZON_URL ||
+          "https://horizon-testnet.stellar.org";
+
+        const res = await fetch(`${horizonUrl}/accounts/${publicKey}`);
+        if (!res.ok) return;
+
+        const account = await res.json();
+        const balances: Array<{
+          asset_type: string;
+          asset_code?: string;
+          asset_issuer?: string;
+          balance: string;
+        }> = account.balances;
+
+        // Check if wallet holds the merchant's requested asset
+        const merchantAsset = payment.asset.toUpperCase();
+        const hasDestAsset = balances.some((b) => {
+          if (merchantAsset === "XLM" || merchantAsset === "NATIVE") {
+            return b.asset_type === "native" && parseFloat(b.balance) > 0;
+          }
+          return (
+            b.asset_code === merchantAsset &&
+            b.asset_issuer === payment.asset_issuer &&
+            parseFloat(b.balance) >= payment.amount
+          );
+        });
+
+        if (hasDestAsset || cancelled) return;
+
+        // Wallet doesn't hold the destination asset — find the customer's primary asset
+        // Prefer XLM as the default alternative send asset
+        const hasXLM = balances.some(
+          (b) => b.asset_type === "native" && parseFloat(b.balance) > 0
+        );
+
+        if (!hasXLM || cancelled) return;
+
+        setWalletAsset("XLM");
+
+        // Fetch path quote from backend
+        setPathQuoteLoading(true);
+        const quoteParams = new URLSearchParams({
+          source_asset: "XLM",
+          source_account: publicKey,
+        });
+
+        const quoteRes = await fetch(
+          `${API_URL}/api/path-payment-quote/${payment.id}?${quoteParams}`
+        );
+
+        if (!quoteRes.ok || cancelled) {
+          setPathQuoteLoading(false);
+          return;
+        }
+
+        const quote: PathQuote = await quoteRes.json();
+        if (!cancelled) {
+          setPathQuote(quote);
+        }
+      } catch {
+        // Non-critical — path payment is optional
+      } finally {
+        if (!cancelled) setPathQuoteLoading(false);
+      }
+    };
+
+    checkWalletAndFetchQuote();
+    return () => { cancelled = true; };
+  }, [freighterReady, payment]);
+
   // ── Pay handler ───────────────────────────────────────────────────────────
   const handlePay = async () => {
     if (!payment) return;
     setActionError(null);
 
     try {
-      const result = await processPayment({
-        recipient: payment.recipient,
-        amount: String(payment.amount),
-        assetCode: payment.asset,
-        assetIssuer: payment.asset_issuer,
-      });
+      let result: { hash: string };
+
+      if (usePathPayment && pathQuote) {
+        result = await processPathPayment({
+          recipient: payment.recipient,
+          destAmount: pathQuote.destination_amount,
+          destAssetCode: pathQuote.destination_asset,
+          destAssetIssuer: payment.asset_issuer,
+          sendMax: pathQuote.send_max,
+          sendAssetCode: pathQuote.source_asset,
+          sendAssetIssuer: pathQuote.source_asset_issuer,
+          path: pathQuote.path,
+        });
+      } else {
+        result = await processPayment({
+          recipient: payment.recipient,
+          amount: String(payment.amount),
+          assetCode: payment.asset,
+          assetIssuer: payment.asset_issuer,
+        });
+      }
 
       setPayment({ ...payment, status: "completed", tx_id: result.hash });
       toast.success("Payment sent!");
@@ -456,11 +567,62 @@ export default function PaymentPage() {
             {/* ── CTA section ── */}
             {!isSettled && !isFailed && (
               <div className="flex flex-col gap-3 pt-2">
+
+                {/* Path payment suggestion */}
+                {freighterReady && pathQuote && walletAsset && (
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 text-xs">
+                        ⚡
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-amber-300">
+                          Your wallet doesn&apos;t hold {payment.asset.toUpperCase()}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Pay ~{parseFloat(pathQuote.send_max).toFixed(4)} {walletAsset} instead (includes 1% slippage buffer)
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setUsePathPayment(!usePathPayment)}
+                          className="mt-2 flex items-center gap-2 text-xs font-semibold transition-colors"
+                          style={{ color: usePathPayment ? "var(--checkout-primary)" : "rgb(148,163,184)" }}
+                        >
+                          <span
+                            className="flex h-4 w-4 items-center justify-center rounded border transition-all"
+                            style={{
+                              borderColor: usePathPayment ? "var(--checkout-primary)" : "rgb(100,116,139)",
+                              backgroundColor: usePathPayment ? "var(--checkout-primary)" : "transparent",
+                            }}
+                          >
+                            {usePathPayment && (
+                              <svg className="h-3 w-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </span>
+                          Pay with {walletAsset}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {freighterReady && pathQuoteLoading && (
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-400">
+                    <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Checking payment options…
+                  </div>
+                )}
+
                 {freighterReady ? (
                   <button
                     type="button"
                     onClick={handlePay}
-                    disabled={isProcessing}
+                    disabled={isProcessing || (usePathPayment && !pathQuote)}
                     className="group relative flex h-12 w-full items-center justify-center rounded-xl font-bold text-black transition-all disabled:cursor-not-allowed disabled:opacity-50"
                     style={{
                       backgroundColor: "var(--checkout-primary)",
@@ -475,7 +637,7 @@ export default function PaymentPage() {
                         Processing…
                       </span>
                     ) : (
-                      "Pay with Freighter"
+                      usePathPayment ? `Pay ~${parseFloat(pathQuote!.send_max).toFixed(4)} ${walletAsset} via Path Payment` : "Pay with Freighter"
                     )}
                     <div
                       className="absolute inset-0 -z-10 opacity-0 blur-xl transition-opacity group-hover:opacity-100"

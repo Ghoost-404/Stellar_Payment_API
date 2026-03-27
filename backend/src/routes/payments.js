@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit";
 import { randomUUID } from "node:crypto";
 import {
   findMatchingPayment,
+  findStrictReceivePaths,
   createRefundTransaction,
 } from "../lib/stellar.js";
 import { supabase } from "../lib/supabase.js";
@@ -774,6 +775,124 @@ function createPaymentsRouter({
           status: "refunded",
           refund_tx_hash: tx_hash,
           message: "Refund confirmed successfully",
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  /**
+   * @swagger
+   * /api/path-payment-quote/{id}:
+   *   get:
+   *     summary: Get a path payment quote for a payment session
+   *     description: Returns the estimated send amount if the customer wants to pay with a different asset than the merchant expects.
+   *     tags: [Payments]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Payment ID
+   *       - in: query
+   *         name: source_asset
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Asset code the customer wants to send (e.g. XLM)
+   *       - in: query
+   *         name: source_asset_issuer
+   *         schema:
+   *           type: string
+   *         description: Issuer of the source asset (required if not XLM)
+   *       - in: query
+   *         name: source_account
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Customer's Stellar public key
+   *     responses:
+   *       200:
+   *         description: Path payment quote
+   *       400:
+   *         description: Missing parameters or same asset
+   *       404:
+   *         description: Payment not found or no path available
+   */
+  router.get(
+    "/path-payment-quote/:id",
+    validateUuidParam(),
+    async (req, res, next) => {
+      try {
+        const sourceAsset = req.query.source_asset;
+        const sourceAssetIssuer = req.query.source_asset_issuer || null;
+        const sourceAccount = req.query.source_account;
+
+        if (!sourceAsset || !sourceAccount) {
+          return res.status(400).json({
+            error: "source_asset and source_account query parameters are required",
+          });
+        }
+
+        const { data, error } = await supabase
+          .from("payments")
+          .select("id, amount, asset, asset_issuer, recipient, status")
+          .eq("id", req.params.id)
+          .maybeSingle();
+
+        if (error) {
+          error.status = 500;
+          throw error;
+        }
+
+        if (!data) {
+          return res.status(404).json({ error: "Payment not found" });
+        }
+
+        // No quote needed if customer is already paying with the right asset
+        const sameAsset =
+          sourceAsset.toUpperCase() === data.asset.toUpperCase() &&
+          (sourceAssetIssuer || null) === (data.asset_issuer || null);
+
+        if (sameAsset) {
+          return res.status(400).json({
+            error: "Source asset is the same as destination asset. Use a direct payment.",
+          });
+        }
+
+        const SLIPPAGE = 0.01; // 1%
+
+        const quote = await findStrictReceivePaths({
+          sourceAccount,
+          destAssetCode: data.asset,
+          destAssetIssuer: data.asset_issuer,
+          destAmount: String(data.amount),
+          sourceAssetCode: sourceAsset,
+          sourceAssetIssuer,
+        });
+
+        if (!quote) {
+          return res.status(404).json({
+            error: "No path found for this asset pair",
+          });
+        }
+
+        const sendMax = (
+          parseFloat(quote.source_amount) * (1 + SLIPPAGE)
+        ).toFixed(7);
+
+        res.json({
+          source_asset: quote.source_asset_code,
+          source_asset_issuer: quote.source_asset_issuer,
+          source_amount: quote.source_amount,
+          send_max: sendMax,
+          destination_asset: data.asset,
+          destination_asset_issuer: data.asset_issuer,
+          destination_amount: String(data.amount),
+          path: quote.path,
+          slippage: SLIPPAGE,
         });
       } catch (err) {
         next(err);
