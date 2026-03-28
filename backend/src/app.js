@@ -17,7 +17,7 @@ import { requireApiKeyAuth } from "./lib/auth.js";
 import { isHorizonReachable } from "./lib/stellar.js";
 import { supabase } from "./lib/supabase.js";
 import { pool } from "./lib/db.js";
-import { formatZodError } from "./lib/request-schemas.js";
+
 import { idempotencyMiddleware } from "./lib/idempotency.js";
 import { setupSentryErrorHandler } from "./lib/sentry.js";
 import {
@@ -179,10 +179,6 @@ export async function createApp({ redisClient }) {
   setupSentryErrorHandler(app);
 
   app.use((err, req, res, next) => {
-    if (err instanceof ZodError) {
-      return res.status(400).json({ error: formatZodError(err) });
-    }
-
     res.status(err.status || 500).json({
       error: err.message || "Internal Server Error",
     });

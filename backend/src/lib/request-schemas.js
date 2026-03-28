@@ -231,15 +231,7 @@ export const webhookSettingsSchema = z.object({
   ),
 });
 
-export function formatZodError(error) {
-  if (error && Array.isArray(error.issues)) {
-    return error.issues.map((issue) => ({
-      field: issue.path.join("."),
-      message: issue.message,
-    }));
-  }
-  return "Validation error";
-}
+
 
 /**
  * Helper to parse and validate payment body for session creation.
