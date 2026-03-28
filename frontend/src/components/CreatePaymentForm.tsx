@@ -12,6 +12,7 @@ import {
   useMerchantTrustedAddresses,
 } from "@/lib/merchant-store";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { Spinner } from "./ui/Spinner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -52,9 +53,18 @@ export default function CreatePaymentForm() {
   const apiKey = useMerchantApiKey();
   const hydrated = useMerchantHydrated();
   const trustedAddresses = useMerchantTrustedAddresses();
-  const [useSessionBranding, setUseSessionBranding] = useLocalStorage("payment_use_branding", false);
-  const [branding, setBranding] = useLocalStorage("payment_branding", DEFAULT_BRANDING);
-  const [selectedTrustedAddress, setSelectedTrustedAddress] = useLocalStorage("payment_trusted_address", "");
+  const [useSessionBranding, setUseSessionBranding] = useLocalStorage(
+    "payment_use_branding",
+    false,
+  );
+  const [branding, setBranding] = useLocalStorage(
+    "payment_branding",
+    DEFAULT_BRANDING,
+  );
+  const [selectedTrustedAddress, setSelectedTrustedAddress] = useLocalStorage(
+    "payment_trusted_address",
+    "",
+  );
 
   useHydrateMerchantStore();
 
@@ -135,7 +145,9 @@ export default function CreatePaymentForm() {
       // ── 429 Rate-limit handling ─────────────────────────────
       if (res.status === 429) {
         const retryHeader = res.headers.get("Retry-After");
-        const seconds = retryHeader ? Math.max(1, Math.ceil(Number(retryHeader))) : 60;
+        const seconds = retryHeader
+          ? Math.max(1, Math.ceil(Number(retryHeader)))
+          : 60;
         setRetryAfter(seconds);
         const msg = t("rateLimitError", { seconds: String(seconds) });
         setError(msg);
@@ -144,14 +156,12 @@ export default function CreatePaymentForm() {
       }
       // ────────────────────────────────────────────────────────
 
-      if (!res.ok)
-        throw new Error(data.error ?? t("failedCreate"));
+      if (!res.ok) throw new Error(data.error ?? t("failedCreate"));
 
       setCreated(data);
       toast.success(t("createdToast"));
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : t("failedCreate");
+      const message = err instanceof Error ? err.message : t("failedCreate");
       setError(message);
       toast.error(message);
     } finally {
@@ -213,9 +223,7 @@ export default function CreatePaymentForm() {
         <p className="text-base font-medium text-yellow-200">
           {t("noApiKeyTitle")}
         </p>
-        <p className="text-sm text-slate-400">
-          {t("noApiKeyDescription")}
-        </p>
+        <p className="text-sm text-slate-400">{t("noApiKeyDescription")}</p>
         <Link
           href="/register"
           className="mt-2 rounded-xl bg-mint px-5 py-2.5 text-sm font-bold text-black transition-all hover:bg-glow"
@@ -238,9 +246,7 @@ export default function CreatePaymentForm() {
             <h2 className="text-xl font-semibold text-white">
               {t("readyTitle")}
             </h2>
-            <p className="text-sm text-slate-400">
-              {t("readyDescription")}
-            </p>
+            <p className="text-sm text-slate-400">{t("readyDescription")}</p>
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
@@ -293,11 +299,21 @@ export default function CreatePaymentForm() {
           role="alert"
           className="flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-300"
         >
-          <svg className="mt-0.5 h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          <svg
+            className="mt-0.5 h-5 w-5 shrink-0"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z"
+              clipRule="evenodd"
+            />
           </svg>
           <div className="flex flex-col gap-1">
-            <span className="font-medium">{t("rateLimitError", { seconds: String(retryAfter) })}</span>
+            <span className="font-medium">
+              {t("rateLimitError", { seconds: String(retryAfter) })}
+            </span>
             <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-yellow-500/20">
               <div
                 className="h-full rounded-full bg-yellow-400 transition-all duration-1000 ease-linear"
@@ -344,17 +360,22 @@ export default function CreatePaymentForm() {
           <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
             {t("asset")}
           </span>
-          <div className="flex gap-2" role="group" aria-label={t("selectAsset")}>
+          <div
+            className="flex gap-2"
+            role="group"
+            aria-label={t("selectAsset")}
+          >
             {(["XLM", "USDC"] as const).map((a) => (
               <button
                 key={a}
                 type="button"
                 onClick={() => setAsset(a)}
                 aria-pressed={asset === a}
-                className={`flex-1 rounded-xl border py-2.5 text-sm font-medium transition-all ${asset === a
+                className={`flex-1 rounded-xl border py-2.5 text-sm font-medium transition-all ${
+                  asset === a
                     ? "border-mint/50 bg-mint/10 text-mint"
                     : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white"
-                  }`}
+                }`}
               >
                 {a}
               </button>
@@ -376,7 +397,7 @@ export default function CreatePaymentForm() {
             <label
               htmlFor="trusted-address"
               className="text-xs font-medium uppercase tracking-wider text-slate-400"
-          >
+            >
               {t("trustedAddresses")}
             </label>
             <select
@@ -388,7 +409,8 @@ export default function CreatePaymentForm() {
               <option value="">{t("selectSavedAddress")}</option>
               {trustedAddresses.map((addr) => (
                 <option key={addr.id} value={addr.id}>
-                  {addr.label} ({addr.address.slice(0, 8)}...{addr.address.slice(-6)})
+                  {addr.label} ({addr.address.slice(0, 8)}...
+                  {addr.address.slice(-6)})
                 </option>
               ))}
             </select>
@@ -423,7 +445,9 @@ export default function CreatePaymentForm() {
             className="text-xs font-medium uppercase tracking-wider text-slate-400"
           >
             {t("descriptionLabel")}{" "}
-            <span className="normal-case text-slate-600">({t("optional")})</span>
+            <span className="normal-case text-slate-600">
+              ({t("optional")})
+            </span>
           </label>
           <input
             id="description"
@@ -448,10 +472,11 @@ export default function CreatePaymentForm() {
             <button
               type="button"
               onClick={() => setUseSessionBranding((v) => !v)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${useSessionBranding
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                useSessionBranding
                   ? "bg-mint text-black"
                   : "border border-white/20 text-slate-300"
-                }`}
+              }`}
             >
               {useSessionBranding ? t("enabled") : t("disabled")}
             </button>
@@ -459,24 +484,30 @@ export default function CreatePaymentForm() {
 
           {useSessionBranding && (
             <div className="mt-4 grid gap-3">
-              {([
-                ["primary_color", t("primary")],
-                ["secondary_color", t("secondary")],
-                ["background_color", t("background")],
-              ] as const).map(([field, label]) => (
+              {(
+                [
+                  ["primary_color", t("primary")],
+                  ["secondary_color", t("secondary")],
+                  ["background_color", t("background")],
+                ] as const
+              ).map(([field, label]) => (
                 <label key={field} className="flex flex-col gap-1.5">
                   <span className="text-xs text-slate-400">{label}</span>
                   <div className="flex items-center gap-3">
                     <input
                       type="color"
                       value={branding[field]}
-                      onChange={(e) => updateBrandingField(field, e.target.value)}
+                      onChange={(e) =>
+                        updateBrandingField(field, e.target.value)
+                      }
                       className="h-9 w-14 rounded border border-white/10 bg-transparent p-1"
                     />
                     <input
                       type="text"
                       value={branding[field]}
-                      onChange={(e) => updateBrandingField(field, e.target.value)}
+                      onChange={(e) =>
+                        updateBrandingField(field, e.target.value)
+                      }
                       className="flex-1 rounded-lg border border-white/10 bg-black/40 p-2 font-mono text-xs text-white"
                     />
                   </div>
@@ -487,7 +518,10 @@ export default function CreatePaymentForm() {
                 className="rounded-lg border border-white/10 p-3"
                 style={{ background: branding.background_color }}
               >
-                <p className="text-xs" style={{ color: branding.secondary_color }}>
+                <p
+                  className="text-xs"
+                  style={{ color: branding.secondary_color }}
+                >
                   {t("checkoutPreview")}
                 </p>
                 <button
@@ -510,22 +544,7 @@ export default function CreatePaymentForm() {
       >
         {loading ? (
           <span className="flex items-center gap-2">
-            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-                fill="none"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
+            <Spinner size="sm" className="text-black" />
             {t("generating")}
           </span>
         ) : retryAfter > 0 ? (
