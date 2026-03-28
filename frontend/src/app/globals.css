@@ -4,12 +4,20 @@
 
 :root {
   color-scheme: light;
+  --color-night: #f1f5f9;
+  --color-tide: #e2e8f0;
+  --color-mint: #0f766e; /* Darker mint alias (Teal 700) for readability on light bg */
+  --color-glow: #0d9488;
   --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Cascadia Code", Consolas, "SFMono-Regular", monospace;
 }
 
 :root.dark {
   color-scheme: dark;
+  --color-night: #0b0c10;
+  --color-tide: #0f1a2b;
+  --color-mint: #5ef2c0;
+  --color-glow: #b8ffe2;
 }
 
 body {
@@ -20,6 +28,7 @@ body {
     #eef3ff 100%
   );
   color: #0f172a;
+  background-attachment: fixed;
 }
 
 .dark body {
@@ -30,6 +39,7 @@ body {
     #050608 100%
   );
   color: #f3f5f7;
+  background-attachment: fixed;
 }
 
 /* Light-mode overrides for components that currently use dark-only utility classes. */
