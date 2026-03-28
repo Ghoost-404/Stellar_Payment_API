@@ -159,17 +159,15 @@ export async function createApp({ redisClient }) {
     store: createRedisRateLimitStore({ client: redisClient }),
   });
 
-  app.use("/api/create-payment", requireApiKeyAuth());
-  app.use("/api/create-payment", idempotencyMiddleware);
-  app.use("/api/sessions", requireApiKeyAuth());
-  app.use("/api/sessions", idempotencyMiddleware);
-  app.use("/api/payments", requireApiKeyAuth()); // covers /api/payments/:id too
-  app.use("/api/rotate-key", requireApiKeyAuth());
-  app.use("/api/merchant-branding", requireApiKeyAuth());
-  app.use("/api/webhooks", requireApiKeyAuth());
+  app.use("/api/create-payment", requireApiKeyAuth(), idempotencyMiddleware);
+  app.use("/api/sessions", requireApiKeyAuth(), idempotencyMiddleware);
+  app.use("/api/payments", requireApiKeyAuth(), idempotencyMiddleware);
+  app.use("/api/rotate-key", requireApiKeyAuth(), idempotencyMiddleware);
+  app.use("/api/merchant-branding", requireApiKeyAuth(), idempotencyMiddleware);
+  app.use("/api/webhooks", requireApiKeyAuth(), idempotencyMiddleware);
 
   app.use("/api", createPaymentsRouter({ verifyPaymentRateLimit }));
-  app.use("/api", merchantsRouter({ merchantRegistrationRateLimit }));
+  app.use("/api", createMerchantsRouter({ merchantRegistrationRateLimit }));
   app.use("/api", metricsRouter);
   app.use("/api", webhooksRouter);
   app.use("/api/payments", paymentDetailsRouter); // NEW — GET /api/payments/:id

@@ -301,7 +301,7 @@ describe("v2PaymentSessionSchema", () => {
     const result = v2PaymentSessionSchema.parse({
       amount: 10,
       asset: "XLM",
-      destination_address: "GRECIPIENT",
+      recipient: "GRECIPIENT",
       memo: "18446744073709551615",
       memo_type: "return",
       branding_overrides: {
@@ -318,7 +318,7 @@ describe("v2PaymentSessionSchema", () => {
       v2PaymentSessionSchema.parse({
         amount: 10,
         asset: "XLM",
-        destination_address: "GRECIPIENT",
+        recipient: "GRECIPIENT",
         memo: "bad-return-memo",
         memo_type: "return",
         branding_overrides: {

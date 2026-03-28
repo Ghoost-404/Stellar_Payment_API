@@ -31,7 +31,7 @@ import {
 } from "../lib/metrics.js";
 import { sanitizeMetadataMiddleware } from "../lib/sanitize-metadata.js";
 import { supabase } from "../lib/supabase.js";
-import { findMatchingPayment } from "../lib/stellar.js";
+import { findMatchingPayment, findStrictReceivePaths } from "../lib/stellar.js";
 
 const createPaymentRateLimit = createCreatePaymentRateLimit();
 

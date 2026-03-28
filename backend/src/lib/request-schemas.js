@@ -211,6 +211,8 @@ export const paymentSessionZodSchema = paymentBaseSchema
   })
   .superRefine(applyPaymentValidationRules);
 
+export const v2PaymentSessionSchema = paymentSessionZodSchema;
+
 export const webhookSettingsSchema = z.object({
   webhook_url: z.preprocess(
     (value) => {
