@@ -12,6 +12,7 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { QRCodeSVG } from "qrcode.react";
 import { localeToLanguageTag } from "@/i18n/config";
+import Confetti from "react-confetti";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -327,6 +328,13 @@ export default function PaymentPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [showRawIntent, setShowRawIntent] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    if (payment && (payment.status === "confirmed" || payment.status === "completed")) {
+      setShowConfetti(true);
+    }
+  }, [payment?.status]);
 
   // Path payment state
   const [usePathPayment, setUsePathPayment] = useState(false);
@@ -396,7 +404,7 @@ export default function PaymentPage() {
       } catch {
         /* silent — retry next tick */
       }
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(id);
   }, [paymentId, payment, loading]);
@@ -513,6 +521,11 @@ export default function PaymentPage() {
 
   return (
     <>
+      {showConfetti && (
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 100, pointerEvents: "none" }}>
+          <Confetti recycle={false} numberOfPieces={400} />
+        </div>
+      )}
       {/* ── Full-screen processing overlay ── */}
       {isProcessing && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/85 backdrop-blur-sm">
