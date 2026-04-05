@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useWallet } from "@/lib/wallet-context";
@@ -51,10 +51,6 @@ const DEFAULT_THEME = { primary_color: "#00F5D4", secondary_color: "#6C5CE7", ba
 
 function resolveBranding(config: BrandingConfig | null | undefined) {
   return { ...DEFAULT_THEME, logo_url: null, logo_alt: null, merchant_name: null, ...(config ?? {}) };
-}
-
-function buildThemeStyle(_b: ReturnType<typeof resolveBranding>): CSSProperties {
-  return { background: "#ffffff" };
 }
 
 function buildSep7Uri(p: PaymentDetails) {

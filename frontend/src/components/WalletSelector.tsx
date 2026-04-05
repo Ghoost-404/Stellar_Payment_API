@@ -196,7 +196,7 @@ export default function WalletSelector({ networkPassphrase, onConnected }: Walle
           rel="noopener noreferrer"
           className="text-center text-[10px] font-bold uppercase tracking-widest text-[var(--pluto-500)] hover:text-[var(--pluto-700)] transition-colors"
         >
-          Don't have Freighter? Install it →
+          Don&apos;t have Freighter? Install it →
         </a>
       )}
     </div>

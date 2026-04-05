@@ -72,7 +72,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function SortBtn({ col, active, dir, onClick, children }: { col: SortColumn; active: boolean; dir: SortDirection; onClick: () => void; children: React.ReactNode }) {
+function SortBtn({ active, dir, onClick, children }: { active: boolean; dir: SortDirection; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B] hover:text-[#0A0A0A] transition-colors">
       {children}
@@ -303,11 +303,11 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-[#E8E8E8] bg-[#F9F9F9]">
-              <th className="px-5 py-3"><SortBtn col="status" active={sortColumn==="status"} dir={sortDirection} onClick={() => handleSort("status")}>Status</SortBtn></th>
-              <th className="px-5 py-3"><SortBtn col="amount" active={sortColumn==="amount"} dir={sortDirection} onClick={() => handleSort("amount")}>Amount</SortBtn></th>
-              <th className="hidden px-5 py-3 sm:table-cell"><SortBtn col="recipient" active={sortColumn==="recipient"} dir={sortDirection} onClick={() => handleSort("recipient")}>Recipient</SortBtn></th>
+              <th className="px-5 py-3"><SortBtn active={sortColumn==="status"} dir={sortDirection} onClick={() => handleSort("status")}>Status</SortBtn></th>
+              <th className="px-5 py-3"><SortBtn active={sortColumn==="amount"} dir={sortDirection} onClick={() => handleSort("amount")}>Amount</SortBtn></th>
+              <th className="hidden px-5 py-3 sm:table-cell"><SortBtn active={sortColumn==="recipient"} dir={sortDirection} onClick={() => handleSort("recipient")}>Recipient</SortBtn></th>
               <th className="hidden px-5 py-3 md:table-cell text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B]">Description</th>
-              <th className="hidden px-5 py-3 lg:table-cell"><SortBtn col="created_at" active={sortColumn==="created_at"} dir={sortDirection} onClick={() => handleSort("created_at")}>Date</SortBtn></th>
+              <th className="hidden px-5 py-3 lg:table-cell"><SortBtn active={sortColumn==="created_at"} dir={sortDirection} onClick={() => handleSort("created_at")}>Date</SortBtn></th>
               <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B]">Actions</th>
             </tr>
           </thead>
