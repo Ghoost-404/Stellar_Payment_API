@@ -133,6 +133,29 @@ export default function DashboardPage() {
               </div>
             </div>
           </section>
+
+          <section className="rounded-2xl border border-[#E8E8E8] bg-white p-6">
+            <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-[#6B6B6B]">Integration Modes</h3>
+            <p className="mb-4 text-xs text-[#6B6B6B]">
+              Use one merchant account, then choose your pricing/integration path.
+            </p>
+            <div className="flex flex-col gap-2">
+              <Link
+                href="/docs/api-guide"
+                className="flex items-center justify-between rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-4 py-3 text-sm font-bold text-[#0A0A0A] transition-colors hover:bg-[#F2F2F2]"
+              >
+                <span>Subscription Mode</span>
+                <span className="text-[10px] uppercase tracking-widest text-[#6B6B6B]">Path 01</span>
+              </Link>
+              <Link
+                href="/docs/x402-agentic-payments"
+                className="flex items-center justify-between rounded-xl border border-[var(--pluto-200)] bg-[var(--pluto-50)] px-4 py-3 text-sm font-bold text-[var(--pluto-700)] transition-colors hover:bg-[var(--pluto-100)]"
+              >
+                <span>x402 Pay-per-request</span>
+                <span className="text-[10px] uppercase tracking-widest text-[var(--pluto-600)]">Path 02</span>
+              </Link>
+            </div>
+          </section>
         </aside>
       </div>
 

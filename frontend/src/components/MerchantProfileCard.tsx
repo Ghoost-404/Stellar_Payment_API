@@ -20,11 +20,24 @@ export default function MerchantProfileCard() {
 
   if (!hydrated) return null;
 
-  // If no merchant data, show anonymous profile
-  const displayName = merchant?.business_name || merchant?.email || "Merchant";
-  const email = merchant?.email || "";
-  const avatarName = merchant?.business_name || merchant?.email || "Merchant";
-  const logoUrl = merchant?.logo_url || null;
+  if (!merchant) {
+    return (
+      <Link
+        href="/login"
+        className="inline-flex h-10 items-center gap-2 rounded-full border border-[#E8E8E8] bg-white px-4 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] transition-colors hover:bg-[#F5F5F5]"
+      >
+        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1118.879 17.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Account
+      </Link>
+    );
+  }
+
+  const displayName = merchant.business_name || merchant.email || "Merchant";
+  const email = merchant.email || "";
+  const avatarName = merchant.business_name || merchant.email || "Merchant";
+  const logoUrl = merchant.logo_url || null;
 
   const handleLogout = () => {
     logout();
@@ -37,22 +50,22 @@ export default function MerchantProfileCard() {
       <button
         type="button"
         onClick={() => setShowDropdown((v) => !v)}
-        className="flex items-center gap-3 rounded-lg border border-[#E8E8E8] bg-white p-2 pr-4 transition-all hover:bg-[#F5F5F5] group"
+        className="group flex h-10 items-center gap-2.5 rounded-full border border-[#E8E8E8] bg-white px-2.5 pr-3.5 transition-all hover:border-[#DADADA] hover:bg-[#F8F8F8]"
         aria-label="Open profile menu"
       >
         <Avatar
-          size={36}
+          size={30}
           name={avatarName}
           src={logoUrl}
         />
-        <div className="hidden text-left sm:block">
-          <p className="truncate text-sm font-bold text-[#0A0A0A]">
+        <div className="hidden max-w-[170px] text-left sm:block">
+          <p className="truncate text-xs font-bold text-[#0A0A0A]">
             {displayName}
           </p>
-          <p className="truncate text-[9px] font-bold uppercase tracking-widest text-[#6B6B6B]">{email}</p>
+          <p className="truncate text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B6B6B]">{email}</p>
         </div>
         <svg
-          className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${
+          className={`h-3.5 w-3.5 text-[#8A8A8A] transition-transform duration-300 ${
             showDropdown ? "rotate-180" : ""
           }`}
           fill="none"
@@ -76,9 +89,9 @@ export default function MerchantProfileCard() {
             onClick={() => setShowDropdown(false)}
           />
           
-          <div className="absolute right-0 z-50 mt-4 w-72 origin-top-right rounded-lg border border-[#E8E8E8] bg-white p-6 shadow-xl">
+          <div className="absolute right-0 z-50 mt-3 w-72 origin-top-right rounded-2xl border border-[#E8E8E8] bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.12)]">
             {/* Profile Header */}
-            <div className="mb-6 flex items-center gap-4 border-b border-[#F5F5F5] pb-6">
+            <div className="mb-5 flex items-center gap-3.5 border-b border-[#F0F0F0] pb-5">
               <Avatar
                 size={52}
                 name={avatarName}
@@ -88,16 +101,16 @@ export default function MerchantProfileCard() {
                 <p className="truncate text-base font-bold text-[#0A0A0A]">
                   {displayName}
                 </p>
-                <p className="truncate text-[10px] font-bold text-[#6B6B6B] uppercase tracking-widest">{email}</p>
+                <p className="truncate text-[10px] font-bold text-[#6B6B6B] uppercase tracking-[0.16em]">{email}</p>
               </div>
             </div>
 
             {/* Menu Items */}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <Link
                 href="/settings"
                 onClick={() => setShowDropdown(false)}
-                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-[#6B6B6B] transition-all hover:bg-[#F5F5F5] hover:text-[#0A0A0A]"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-[#6B6B6B] transition-all hover:bg-[#F5F5F5] hover:text-[#0A0A0A]"
               >
                 {/* icon svg same */}
                 <svg
@@ -125,7 +138,7 @@ export default function MerchantProfileCard() {
               <Link
                 href="/dashboard/create"
                 onClick={() => setShowDropdown(false)}
-                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-[#6B6B6B] transition-all hover:bg-[#F5F5F5] hover:text-[#0A0A0A]"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-[#6B6B6B] transition-all hover:bg-[#F5F5F5] hover:text-[#0A0A0A]"
               >
                 <svg
                   className="h-4 w-4"
@@ -145,7 +158,7 @@ export default function MerchantProfileCard() {
 
               <button
                 onClick={handleLogout}
-                className="mt-2 flex items-center gap-3 rounded-md bg-red-50 px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-red-600 transition-all hover:bg-red-100"
+                className="mt-2 flex items-center gap-3 rounded-xl bg-red-50 px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-red-600 transition-all hover:bg-red-100"
               >
                 <svg
                   className="h-4 w-4"
@@ -165,7 +178,7 @@ export default function MerchantProfileCard() {
             </div>
 
             {/* Network Info */}
-            <div className="mt-6 rounded-lg border border-[#E8E8E8] bg-[#F9F9F9] p-4">
+            <div className="mt-5 rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] p-4">
               <p className="text-[9px] font-bold uppercase tracking-widest text-[#6B6B6B]">
                 Partner Since
               </p>

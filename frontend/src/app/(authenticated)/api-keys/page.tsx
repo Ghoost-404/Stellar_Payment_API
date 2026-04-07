@@ -55,19 +55,24 @@ app.get('/api/my-premium-data',
   }
 );`;
 
-  const curlSnippet = `# 1. Hit the endpoint — get 402
-curl ${API_URL}/api/demo/protected
+  const curlSnippet = `# 1. Your backend requests PLUTO in x402 mode
+curl -X POST ${API_URL}/api/create-payment \\
+  -H "x-api-key: <merchant_api_key>" \\
+  -H "x-pluto-pricing-mode: x402" \\
+  -H "Content-Type: application/json" \\
+  -d '{"amount":"129.97","asset":"USDC","asset_issuer":"<issuer>","recipient":"<merchant_wallet>"}'
 
-# 2. Send USDC on Stellar (use your wallet or the demo agent)
-# memo must match the one in the 402 response
+# 2. If response is 402, pay exact challenge fields on Stellar
+# amount, recipient, memo, asset_issuer must match exactly
 
 # 3. Verify payment → get access token
 curl -X POST ${API_URL}/api/verify-x402 \\
   -H "Content-Type: application/json" \\
-  -d '{"tx_hash":"<hash>","expected_amount":"0.10","expected_recipient":"<G...>","memo":"<memo>"}'
+  -d '{"tx_hash":"<hash>","expected_amount":"<amount>","expected_recipient":"<G...>","memo":"<memo>"}'
 
-# 4. Use the token
-curl ${API_URL}/api/demo/protected \\
+# 4. Retry create-payment with token
+curl -X POST ${API_URL}/api/create-payment \\
+  -H "x-api-key: <merchant_api_key>" \\
   -H "X-Payment-Token: <token>"`;
 
   return (
@@ -144,9 +149,9 @@ curl ${API_URL}/api/demo/protected \\
               Protect any of your API endpoints so AI agents pay USDC per request — no subscriptions, no API keys.
               PLUTO verifies the on-chain payment and issues a short-lived access token.
             </p>
-            <Link href="/x402-demo" target="_blank"
+            <Link href="/docs/x402-agentic-payments"
               className="self-start text-[10px] font-bold uppercase tracking-widest text-[var(--pluto-600)] hover:text-[var(--pluto-800)] transition-colors">
-              See live demo →
+              Open integration guide →
             </Link>
           </div>
 
@@ -191,15 +196,15 @@ curl ${API_URL}/api/demo/protected \\
             </pre>
           </div>
 
-          {/* Run demo */}
+          {/* Docs link */}
           <div className="rounded-2xl border border-[#E8E8E8] bg-[#F9F9F9] p-5 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-bold text-[#0A0A0A]">Run the autonomous agent demo</p>
-              <code className="text-xs font-mono text-[var(--pluto-600)]">node scripts/demoAgent.js</code>
+              <p className="text-sm font-bold text-[#0A0A0A]">Full production setup walkthrough</p>
+              <code className="text-xs font-mono text-[var(--pluto-600)]">docs/x402-agentic-payments</code>
             </div>
-            <Link href="/x402-demo" target="_blank"
+            <Link href="/docs/x402-agentic-payments"
               className="shrink-0 rounded-xl bg-[var(--pluto-500)] px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-[var(--pluto-600)] transition-all">
-              Browser Demo
+              Open Docs
             </Link>
           </div>
         </div>

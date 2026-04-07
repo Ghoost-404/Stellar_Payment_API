@@ -11,7 +11,7 @@
  *   4. Client retries with X-Payment-Token: <jwt> → gets access
  */
 
-import { createHmac, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 
 const USDC_ISSUER = process.env.USDC_ISSUER ||
@@ -26,6 +26,7 @@ const USDC_ISSUER = process.env.USDC_ISSUER ||
  * @param {string} [config.asset]         - Asset code, defaults to "USDC"
  * @param {string} [config.plutoVerifyUrl] - URL of /api/verify-x402
  * @param {string} [config.memo_prefix]   - Memo prefix, defaults to "x402"
+ * @param {boolean} [config.enforceByDefault] - If true, always challenge when token is absent
  */
 export function x402Middleware(config) {
   const {
@@ -34,6 +35,7 @@ export function x402Middleware(config) {
     asset = "USDC",
     plutoVerifyUrl = `${process.env.PAYMENT_LINK_BASE?.replace(":3000", ":4000") || "http://localhost:4000"}/api/verify-x402`,
     memo_prefix = "x402",
+    enforceByDefault = false,
   } = config;
 
   const jwtSecret = process.env.X402_JWT_SECRET;
@@ -43,6 +45,13 @@ export function x402Middleware(config) {
 
   return function requirePayment(req, res, next) {
     const token = req.headers["x-payment-token"];
+    const modeHeader = String(req.headers["x-pluto-pricing-mode"] || "")
+      .trim()
+      .toLowerCase();
+    const modeQueryRaw = req.query?.pricing_mode;
+    const modeQuery =
+      typeof modeQueryRaw === "string" ? modeQueryRaw.trim().toLowerCase() : "";
+    const requestedX402 = modeHeader === "x402" || modeQuery === "x402";
 
     if (token) {
       try {
@@ -52,6 +61,13 @@ export function x402Middleware(config) {
       } catch {
         // Token invalid or expired — fall through to 402
       }
+    }
+
+    // Dual-mode behavior:
+    // - Subscription/API-key mode: pass through
+    // - x402 mode: challenge with 402
+    if (!enforceByDefault && !requestedX402) {
+      return next();
     }
 
     const requestId = randomUUID().replace(/-/g, "");

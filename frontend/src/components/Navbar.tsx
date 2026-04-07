@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useHydrateMerchantStore } from "@/lib/merchant-store";
 import MerchantProfileCard from "@/components/MerchantProfileCard";
 import ApiHealthBadge from "@/components/ApiHealthBadge";
-import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 type AppNavLink = {
   href: string;
@@ -98,7 +97,6 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden items-center gap-3 md:flex">
-                <LocaleSwitcher />
                 <ApiHealthBadge />
             </div>
             <MerchantProfileCard />
@@ -150,8 +148,7 @@ export default function Navbar() {
                 ))}
               </div>
               <div className="h-px bg-[#E8E8E8]" />
-              <div className="flex items-center justify-between px-2">
-                <LocaleSwitcher />
+              <div className="flex items-center justify-end px-2">
                 <ApiHealthBadge />
               </div>
             </motion.div>

@@ -10,8 +10,8 @@ export default function HeroSection() {
   return (
     <div className="flex w-full flex-col justify-center max-w-[460px]">
       {/* Surgical Card Illustration */}
-      <div className="mb-16 w-full aspect-square max-w-[400px] rounded-[3rem] bg-[#F9F9F9] p-8 relative overflow-hidden flex flex-col justify-center items-center border border-[#E8E8E8]">
-        {/* Minimal dot grid */}
+      {/* <div className="mb-16 w-full aspect-square max-w-[400px] rounded-[3rem] bg-[#F9F9F9] p-8 relative overflow-hidden flex flex-col justify-center items-center border border-[#E8E8E8]">
+        Minimal dot grid
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
              style={{ 
                  backgroundImage: 'radial-gradient(#000 1px, transparent 0)',
@@ -19,7 +19,7 @@ export default function HeroSection() {
              }}>
         </div>
         
-        {/* Floating Minimal Card */}
+        Floating Minimal Card
         <div className="relative w-[320px] h-[190px] rounded-3xl bg-white shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-8 flex flex-col justify-between overflow-hidden z-10 border border-[#E8E8E8] transform -rotate-2">
             <div className="flex justify-between items-start w-full z-10">
                 <div className="flex items-center gap-2">
@@ -37,7 +37,7 @@ export default function HeroSection() {
                 <div className="text-[10px] text-[#6B6B6B] font-bold uppercase tracking-widest">VALID THRU 12/28</div>
             </div>
         </div>
-      </div>
+      </div> */}
 
       <h1 className="text-5xl leading-[1.05] font-bold text-[#0A0A0A] mb-6 tracking-tighter uppercase">
         Commerce <br />

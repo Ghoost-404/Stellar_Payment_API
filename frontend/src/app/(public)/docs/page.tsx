@@ -15,7 +15,7 @@ export default function DocsIndexPage() {
         <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--pluto-500)]">Documentation</p>
         <h1 className="mt-3 text-3xl font-bold text-[#0A0A0A] tracking-tight">PLUTO Developer Guides</h1>
         <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-[#6B6B6B]">
-          Choose your integration path: traditional subscription/API-key flow or x402 pay-per-request. Each guide includes practical implementation steps and code samples.
+          Choose your integration path: subscription mode or x402 pay-per-request mode. Both run under the same merchant account and dashboard.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export default function DocsIndexPage() {
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B] mb-4">Quick Links</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            { label: "x402 Live Demo", href: "/x402-demo", desc: "Watch an agent pay autonomously" },
+            { label: "x402 Integration Guide", href: "/docs/x402-agentic-payments", desc: "Implement pay-per-request in your backend" },
             { label: "API Docs (Swagger)", href: "/api-docs", desc: "Interactive API explorer" },
             { label: "Register as Merchant", href: "/register", desc: "Path 01: get your API key" },
             { label: "Dashboard", href: "/dashboard", desc: "Manage payments" },

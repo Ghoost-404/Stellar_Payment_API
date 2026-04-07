@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -169,6 +169,8 @@ export default function PaymentPage() {
   const [walletBalances, setWalletBalances] = useState<AssetBalance[]>([]);
   const [sourceAsset, setSourceAsset] = useState<string>("XLM");
   const [sortedSourceAssets, setSortedSourceAssets] = useState<string[]>([]);
+  const [walletPublicKey, setWalletPublicKey] = useState<string | null>(null);
+  const previousWalletPublicKey = useRef<string | null>(null);
 
   const { activeProvider } = useWallet();
   const { isProcessing, status: txStatus, error: paymentError, processPayment, processPathPayment } = usePayment(activeProvider);
@@ -225,12 +227,48 @@ export default function PaymentPage() {
   }, [paymentId, payment, loading]);
 
   useEffect(() => {
-    if (!activeProvider) { setWalletBalances([]); setSortedSourceAssets([]); return; }
+    if (!activeProvider) {
+      setWalletPublicKey(null);
+      previousWalletPublicKey.current = null;
+      return;
+    }
+
+    let cancelled = false;
+    const syncPublicKey = async () => {
+      try {
+        const nextKey = await activeProvider.getPublicKey();
+        if (!cancelled) {
+          setWalletPublicKey((prev) => (prev === nextKey ? prev : nextKey));
+        }
+      } catch {
+        if (!cancelled) {
+          setWalletPublicKey(null);
+        }
+      }
+    };
+
+    void syncPublicKey();
+    const intervalId = window.setInterval(syncPublicKey, 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeProvider]);
+
+  useEffect(() => {
+    if (!walletPublicKey) return;
+    if (previousWalletPublicKey.current && previousWalletPublicKey.current !== walletPublicKey) {
+      toast.info("Wallet account switched. Checkout balances updated.");
+    }
+    previousWalletPublicKey.current = walletPublicKey;
+  }, [walletPublicKey]);
+
+  useEffect(() => {
+    if (!activeProvider || !walletPublicKey) { setWalletBalances([]); setSortedSourceAssets([]); return; }
     const load = async () => {
       try {
-        const pubKey = await activeProvider.getPublicKey();
         const horizonUrl = process.env.NEXT_PUBLIC_HORIZON_URL || "https://horizon-testnet.stellar.org";
-        const balances = await getAccountBalances(pubKey, horizonUrl);
+        const balances = await getAccountBalances(walletPublicKey, horizonUrl);
         setWalletBalances(balances);
         const supported = assetMetadata.map(a => a.code);
         const sorted = [...supported].sort((a, b) => parseFloat(balances.find(x => x.code === b)?.balance || "0") - parseFloat(balances.find(x => x.code === a)?.balance || "0"));
@@ -239,17 +277,16 @@ export default function PaymentPage() {
       } catch {}
     };
     load();
-  }, [activeProvider, assetMetadata]);
+  }, [activeProvider, assetMetadata, walletPublicKey]);
 
   useEffect(() => {
-    if (!payment || !activeProvider || payment.status !== "pending") { setPathQuote(null); setUsePathPayment(false); return; }
+    if (!payment || !activeProvider || !walletPublicKey || payment.status !== "pending") { setPathQuote(null); setUsePathPayment(false); return; }
     if (sourceAsset === payment.asset.toUpperCase()) { setPathQuote(null); setUsePathPayment(false); return; }
     let cancelled = false;
     (async () => {
       setPathQuoteLoading(true); setPathQuoteError(null);
       try {
-        const pubKey = await activeProvider.getPublicKey();
-        const qs = new URLSearchParams({ source_asset: sourceAsset, source_asset_issuer: assetMetadata.find(a => a.code === sourceAsset)?.issuer || "", source_account: pubKey });
+        const qs = new URLSearchParams({ source_asset: sourceAsset, source_asset_issuer: assetMetadata.find(a => a.code === sourceAsset)?.issuer || "", source_account: walletPublicKey });
         const res = await fetch(`${API_URL}/api/path-payment-quote/${paymentId}?${qs}`);
         if (!res.ok) { if (!cancelled) { setPathQuote(null); setUsePathPayment(false); if (res.status === 404) setPathQuoteError(`No path found for ${sourceAsset}.`); } return; }
         const data = await res.json() as PathQuote;
@@ -258,7 +295,7 @@ export default function PaymentPage() {
       finally { if (!cancelled) setPathQuoteLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [payment, activeProvider, paymentId, sourceAsset, assetMetadata]);
+  }, [payment, activeProvider, paymentId, sourceAsset, assetMetadata, walletPublicKey]);
 
   useEffect(() => {
     if (!isPayModalOpen) return;

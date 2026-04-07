@@ -16,26 +16,33 @@ export async function getDocBySlug(slug: string) {
     entry.filename.replace(/\.mdx$/, ".md"),
   ];
 
-  for (const filename of candidates) {
-    const filePath = path.join(process.cwd(), "content", "docs", filename);
-    try {
-      const raw = await fs.readFile(filePath, "utf8");
+  const docsBaseCandidates = [
+    path.join(process.cwd(), "content", "docs"),
+    path.join(process.cwd(), "frontend", "content", "docs"),
+  ];
 
-      // Escape lone curly braces outside code blocks so MDX doesn't treat them as JSX.
-      // We replace { and } that are NOT inside backtick fences with their HTML entities.
-      const escaped = escapeNonCodeBraces(raw);
+  for (const docsBase of docsBaseCandidates) {
+    for (const filename of candidates) {
+      const filePath = path.join(docsBase, filename);
+      try {
+        const raw = await fs.readFile(filePath, "utf8");
 
-      const serialized = await serialize(escaped, {
-        mdxOptions: {
-          remarkPlugins: [remarkGfm],
-          rehypePlugins: [
-            [rehypePrismPlus, { defaultLanguage: "bash", showLineNumbers: false }],
-          ],
-        },
-      });
-      return { ...entry, serialized, filename };
-    } catch {
-      // try next candidate
+        // Escape lone curly braces outside code blocks so MDX doesn't treat them as JSX.
+        // We replace { and } that are NOT inside backtick fences with their HTML entities.
+        const escaped = escapeNonCodeBraces(raw);
+
+        const serialized = await serialize(escaped, {
+          mdxOptions: {
+            remarkPlugins: [remarkGfm],
+            rehypePlugins: [
+              [rehypePrismPlus, { defaultLanguage: "bash", showLineNumbers: false }],
+            ],
+          },
+        });
+        return { ...entry, serialized, filename };
+      } catch {
+        // try next candidate path
+      }
     }
   }
 

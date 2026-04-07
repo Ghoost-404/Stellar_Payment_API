@@ -31,6 +31,7 @@ const FEATURES = [
 
 const CODE_REQUEST = `curl -X POST https://api.pluto.io/v1/create-payment \\
   -H "x-api-key: sk_live_4eC39..." \\
+  -H "x-pluto-pricing-mode: x402" \\
   -H "Content-Type: application/json" \\
   -d '{
     "amount": "25.00",
@@ -199,121 +200,142 @@ function IntegrationModesSection() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-24 lg:py-32">
       <div className="mb-12 text-center">
-        <p className="mb-4 font-bold text-[10px] uppercase tracking-[0.4em] text-[#6B6B6B]">Choose Your Mode</p>
+        <p className="mb-4 font-bold text-[10px] uppercase tracking-[0.4em] text-[#6B6B6B]">Agentic Payments</p>
         <h2 className="mx-auto max-w-4xl text-4xl font-bold leading-[1.1] text-[#0A0A0A] sm:text-6xl">
-          Two ways to integrate PLUTO
+          Build with x402 mode
         </h2>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-[2rem] border border-[#E8E8E8] bg-white p-8 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#6B6B6B]">Path 01</p>
-          <h3 className="mt-3 text-3xl font-bold tracking-tight text-[#0A0A0A]">Subscription + API Key</h3>
-          <p className="mt-4 text-sm text-[#6B6B6B]">
-            Standard merchant flow. Register, get API key, manage webhooks, analytics, and dashboard operations.
-          </p>
-          <ul className="mt-6 flex flex-col gap-2 text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B]">
-            <li>Register merchant</li>
-            <li>Create payment links</li>
-            <li>Use full merchant feature set</li>
-          </ul>
-          <Link
-            href="/docs/api-guide"
-            className="mt-8 inline-flex items-center gap-2 rounded-xl border border-[#E8E8E8] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] transition-colors hover:bg-[#F5F5F5]"
-          >
-            View Subscription Guide →
-          </Link>
-        </div>
-
-        <div className="rounded-[2rem] border border-[var(--pluto-200)] bg-[var(--pluto-50)] p-8 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--pluto-600)]">Path 02</p>
-          <h3 className="mt-3 text-3xl font-bold tracking-tight text-[var(--pluto-800)]">x402 Pay-per-request</h3>
-          <p className="mt-4 text-sm text-[var(--pluto-700)]">
-            No registration required for paid create-payment calls. Your backend pays USDC per request and retries with x402 token.
-          </p>
-          <ul className="mt-6 flex flex-col gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--pluto-700)]">
-            <li>Handle 402 challenge</li>
-            <li>Pay on Stellar</li>
-            <li>Retry with payment token</li>
-          </ul>
-          <Link
-            href="/docs/x402-agentic-payments"
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[var(--pluto-500)] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-[var(--pluto-600)]"
-          >
-            View x402 Guide →
-          </Link>
-        </div>
+      <div className="mx-auto max-w-3xl rounded-[2rem] border border-[var(--pluto-200)] bg-[var(--pluto-50)] p-8 shadow-sm">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--pluto-600)]">x402</p>
+        <h3 className="mt-3 text-3xl font-bold tracking-tight text-[var(--pluto-800)]">Pay-per-request API access</h3>
+        <p className="mt-4 text-sm text-[var(--pluto-700)]">
+          Start integrating with x402-protected create-payment calls and let your backend handle 402 challenge, on-chain payment, verification, and retry.
+        </p>
+        <ul className="mt-6 flex flex-col gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--pluto-700)]">
+          <li>Request with x402 pricing mode</li>
+          <li>Pay challenge on Stellar</li>
+          <li>Retry with payment token</li>
+        </ul>
+        <Link
+          href="/docs/x402-agentic-payments"
+          className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[var(--pluto-500)] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-[var(--pluto-600)]"
+        >
+          View x402 Guide →
+        </Link>
       </div>
     </div>
   );
 }
 
-function ComparePlansSection() {
+function PricingSection() {
   const plans = [
     {
-      name: "Free Test Mode",
-      badge: "Sandbox",
-      description: "Best for development and QA before launch.",
-      includes: [
-        "Sandbox/test payments only",
+      name: "Sandbox",
+      price: "$0",
+      interval: "/forever",
+      badge: "Test",
+      description: "Best for development and QA before launch. Build your integration risk-free.",
+      features: [
         "Up to 50 create-payment calls/day",
-        "No production settlement guarantees",
+        "Testnet auto-settlement",
+        "Community Discord support",
       ],
-      cta: { label: "Start Testing", href: "/docs/api-guide" },
+      cta: { label: "Try Free", href: "/register", primary: false },
     },
     {
-      name: "Subscription",
+      name: "Pro",
+      price: "$49",
+      interval: "/mo",
       badge: "Path 01",
-      description: "Traditional merchant account with dashboard operations.",
-      includes: [
-        "Merchant registration + API key",
-        "Dashboard + key rotation + merchant settings",
-        "Webhook and analytics management",
+      description: "Traditional flat-rate billing. Best for web/mobile applications.",
+      features: [
+        "Unlimited payment link generation",
+        "Mainnet automated settlement",
+        "Advanced webhook payload analytics",
+        "Priority 24/7 email support",
       ],
-      cta: { label: "Use Subscription", href: "/register" },
+      cta: { label: "Start Integrating", href: "/register", primary: true },
     },
     {
-      name: "x402 Pay-per-request",
+      name: "x402 Agentic",
+      price: "0.01",
+      interval: "XLM/req",
       badge: "Path 02",
-      description: "No upfront plan required for x402-protected create endpoints.",
-      includes: [
-        "Pay per protected API request",
-        "No merchant registration required to start",
-        "Best for agents and automated workloads",
+      description: "Automated pay-per-request pricing optimized for AI agents and bots.",
+      features: [
+        "Zero monthly platform fees",
+        "Microtransactions settled on Stellar",
+        "Standardized HTTP 402 challenge flow",
+        "Perfect for high-scale AI endpoints",
       ],
-      cta: { label: "Use x402", href: "/docs/x402-agentic-payments" },
+      cta: { label: "Start Integrating", href: "/register", primary: false },
     },
   ];
 
   return (
-    <div className="border-y border-[#E8E8E8] bg-white">
-      <div className="mx-auto max-w-7xl px-6 py-24 lg:py-32">
-        <div className="mb-12 text-center">
-          <p className="mb-4 font-bold text-[10px] uppercase tracking-[0.4em] text-[#6B6B6B]">Compare Plans</p>
-          <h2 className="mx-auto max-w-4xl text-4xl font-bold leading-[1.1] text-[#0A0A0A] sm:text-6xl">
-            Pick the model that matches your business stage
+    <div className="relative border-y border-[#E8E8E8] bg-[#FAFAFA] overflow-hidden">
+      <div
+        className="absolute inset-0 z-0 pointer-events-none opacity-20"
+        style={{ backgroundImage: "linear-gradient(to right, #0A0A0A 1px, transparent 1px), linear-gradient(to bottom, #0A0A0A 1px, transparent 1px)", backgroundSize: "60px 60px" }}
+      />
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-24 lg:py-32">
+        <div className="mb-20 text-center">
+          <p className="mb-4 font-bold text-[10px] uppercase tracking-[0.4em] text-[var(--pluto-600)]">Pricing</p>
+          <h2 className="mx-auto max-w-3xl text-5xl font-bold leading-[1.1] tracking-tight text-[#0A0A0A] sm:text-7xl">
+            Predictable pricing.<br />Infinite scale.
           </h2>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-8 lg:grid-cols-3">
           {plans.map((plan) => (
-            <div key={plan.name} className="flex flex-col rounded-[2rem] border border-[#E8E8E8] bg-[#F9F9F9] p-8">
-              <span className="self-start rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-[#6B6B6B]">
-                {plan.badge}
-              </span>
-              <h3 className="mt-4 text-2xl font-bold tracking-tight text-[#0A0A0A]">{plan.name}</h3>
-              <p className="mt-3 text-sm text-[#6B6B6B]">{plan.description}</p>
-              <ul className="mt-6 flex flex-1 flex-col gap-2 text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B]">
-                {plan.includes.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <Link
-                href={plan.cta.href}
-                className="mt-8 inline-flex items-center justify-center rounded-xl bg-[#0A0A0A] px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-black"
-              >
-                {plan.cta.label}
-              </Link>
+            <div
+              key={plan.name}
+              className={`group relative flex flex-col rounded-[2.5rem] border bg-white p-10 transition-all hover:-translate-y-2 hover:shadow-[0_32px_80px_rgba(0,0,0,0.08)] ${
+                plan.cta.primary ? "border-[var(--pluto-300)] shadow-[0_16px_40px_rgba(33,206,153,0.1)] z-10 lg:scale-105" : "border-[#E8E8E8]"
+              }`}
+            >
+              <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-b from-white to-transparent opacity-50 pointer-events-none" />
+              
+              <div className="relative z-10 flex flex-col flex-1">
+                <span className={`self-start rounded-full border px-3 py-1 text-[9px] font-bold uppercase tracking-widest ${
+                  plan.cta.primary ? "border-[var(--pluto-200)] bg-[var(--pluto-50)] text-[var(--pluto-800)]" : "border-[#E8E8E8] bg-[#F5F5F5] text-[#6B6B6B]"
+                }`}>
+                  {plan.badge}
+                </span>
+
+                <h3 className="mt-8 text-2xl font-bold tracking-tight text-[#0A0A0A]">{plan.name}</h3>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-5xl font-extrabold tracking-tighter text-[#0A0A0A]">{plan.price}</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#6B6B6B]">{plan.interval}</span>
+                </div>
+                
+                <p className="mt-6 text-sm font-medium leading-relaxed text-[#6B6B6B] border-b border-[#E8E8E8] pb-8">
+                  {plan.description}
+                </p>
+
+                <ul className="mt-8 mb-10 flex flex-1 flex-col gap-4">
+                  {plan.features.map((item) => (
+                    <li key={item} className="flex items-start gap-3">
+                      <svg className={`h-4 w-4 shrink-0 mt-0.5 ${plan.cta.primary ? "text-[var(--pluto-500)]" : "text-[#0A0A0A]"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs font-bold uppercase tracking-widest text-[#6B6B6B]">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={plan.cta.href}
+                  className={`mt-auto inline-flex items-center justify-center rounded-2xl px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                    plan.cta.primary 
+                      ? "bg-[var(--pluto-500)] text-white shadow-xl shadow-[var(--pluto-500)]/20 hover:bg-[var(--pluto-600)]" 
+                      : "border border-[#E8E8E8] bg-white text-[#0A0A0A] hover:bg-[#F9F9F9]"
+                  }`}
+                >
+                  {plan.cta.label}
+                </Link>
+              </div>
             </div>
           ))}
         </div>
@@ -477,7 +499,7 @@ function Footer() {
           <SystemStatus />
         </div>
         <div className="flex gap-10 font-bold text-[10px] uppercase tracking-widest text-[#6B6B6B]">
-          {[["Login", "/login"], ["Register", "/register"], ["Dashboard", "/dashboard"], ["Docs", "/docs"], ["x402 Demo", "/x402-demo"]].map(([label, href]) => (
+          {[["Login", "/login"], ["Register", "/register"], ["Dashboard", "/dashboard"], ["Docs", "/docs"]].map(([label, href]) => (
             <Link key={label} href={href} className="transition-colors hover:text-[#0A0A0A]">{label}</Link>
           ))}
         </div>
@@ -492,7 +514,7 @@ export default function Home() {
       <main className="relative min-h-screen bg-white overflow-x-hidden">
         <HeroSection />
         <IntegrationModesSection />
-        <ComparePlansSection />
+        <PricingSection />
         <FeaturesSection />
         <HowItWorksSection />
         <CodeSnippetSection />

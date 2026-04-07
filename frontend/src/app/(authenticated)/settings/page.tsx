@@ -26,7 +26,7 @@ const DEFAULT_BRANDING = {
   logo_url: null as string | null,
 };
 
-type SettingsTab = "api" | "branding" | "display" | "webhooks" | "danger";
+type SettingsTab = "api" | "billing" | "branding" | "display" | "webhooks" | "danger";
 
 interface WebhookDomainVerification {
   status: "verified" | "unverified";
@@ -82,6 +82,7 @@ function EyeIcon({ open }: { open: boolean }) {
 
 const NAV_ITEMS: { id: SettingsTab; label: string; icon: React.ReactNode; danger?: boolean }[] = [
   { id: "api", label: "API Keys", icon: <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg> },
+  { id: "billing", label: "Billing & Plans", icon: <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg> },
   { id: "branding", label: "Branding", icon: <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg> },
   { id: "display", label: "Display", icon: <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> },
   { id: "webhooks", label: "Webhooks", icon: <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> },
@@ -335,6 +336,56 @@ export default function SettingsPage() {
 
         {/* Right content panel */}
         <div className="flex-1 min-w-0">
+
+          {/* Billing Tab */}
+          {activeTab === "billing" && (
+            <div className="rounded-2xl border border-[#E8E8E8] bg-white p-8 flex flex-col gap-8 animate-in fade-in duration-300">
+              <div>
+                <h2 className="text-lg font-bold text-[#0A0A0A] mb-1">Billing & Plans</h2>
+                <p className="text-sm text-[#6B6B6B]">Select your monetization strategy and configure your active plans.</p>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Traditional Subscription Card */}
+                <div className="flex flex-col rounded-2xl border border-[#E8E8E8] bg-[#F9F9F9] p-6 transition-all hover:border-[#0A0A0A] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+                  <span className="self-start rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-[#6B6B6B]">Path 01</span>
+                  <h3 className="mt-4 text-xl font-bold tracking-tight text-[#0A0A0A]">Pro Subscription</h3>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold tracking-tighter text-[#0A0A0A]">$49</span>
+                    <span className="text-xs font-medium text-[#6B6B6B]">/mo</span>
+                  </div>
+                  <p className="mt-3 text-sm text-[#6B6B6B]">Traditional flat-rate billing. Unlimited manual webhook setups, priority support, and high rate limits.</p>
+                  <button type="button" onClick={() => toast.success("Redirecting to Stripe...")} className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#0A0A0A] px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-black">
+                    Subscribe Now
+                  </button>
+                </div>
+
+                {/* x402 Agentic Card */}
+                <div className="flex flex-col bg-[var(--pluto-50)] rounded-2xl border border-[var(--pluto-200)] p-6 transition-all hover:border-[var(--pluto-400)] hover:shadow-[0_8px_30px_rgba(33,206,153,0.1)]">
+                  <span className="self-start rounded-full border border-[var(--pluto-200)] bg-[var(--pluto-100)] px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-[var(--pluto-800)]">Path 02</span>
+                  <h3 className="mt-4 text-xl font-bold tracking-tight text-[var(--pluto-900)]">x402 Agentic</h3>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold tracking-tighter text-[var(--pluto-900)]">Pay-per-use</span>
+                  </div>
+                  <p className="mt-3 text-sm text-[var(--pluto-700)]">Set custom XLM pricing metrics. Perfect for automated AI agents solving X402 challenges natively.</p>
+                  <button type="button" onClick={() => toast.success("x402 Configured")} className="mt-6 inline-flex items-center justify-center rounded-xl bg-[var(--pluto-500)] px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-[var(--pluto-600)]">
+                    Enable x402
+                  </button>
+                </div>
+              </div>
+
+              <div className="h-px bg-[#E8E8E8]" />
+              
+              <div className="flex flex-col gap-4">
+                 <div>
+                   <h3 className="text-sm font-bold text-[#0A0A0A] mb-1">x402 Wallet Configuration</h3>
+                   <p className="text-xs text-[#6B6B6B]">Account address where your HTTP 402 challenge funds should settle.</p>
+                 </div>
+                 <input type="text" placeholder="G..." className="max-w-md rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-4 py-3 font-mono text-sm text-[#0A0A0A] focus:border-[#0A0A0A] focus:bg-white focus:outline-none transition-all" />
+                 <button type="button" onClick={() => toast.success("Wallet Address saved")} className="self-start rounded-xl bg-white border border-[#E8E8E8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] hover:bg-[#F5F5F5] transition-all">Save Wallet</button>
+              </div>
+            </div>
+          )}
 
           {/* API Keys Tab */}
           {activeTab === "api" && (

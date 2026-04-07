@@ -93,7 +93,7 @@ router.post("/auth/login", async (req, res, next) => {
   }
 });
 
-
+/*
  *   post:
  *     summary: Generate a SEP-0010 challenge transaction
  *     tags: [Auth]

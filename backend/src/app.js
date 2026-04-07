@@ -16,14 +16,13 @@ import prometheusRouter from "./routes/prometheus.js";
 import sep0001Router from "./routes/sep0001.js";
 import paymentDetailsRouter from "./routes/paymentDetails.js";
 import x402Router from "./routes/x402.js";
-import demoRouter from "./routes/demo.js";
+import authRouter from "./routes/auth.js";
 
 import { requireApiKeyAuth } from "./lib/auth.js";
 import { isHorizonReachable } from "./lib/stellar.js";
 import { supabase } from "./lib/supabase.js";
 import { pool } from "./lib/db.js";
 import { x402Middleware } from "./middleware/x402.js";
-import { x402AuthBridge } from "./middleware/x402-auth.js";
 
 import { idempotencyMiddleware } from "./lib/idempotency.js";
 import { setupSentryErrorHandler } from "./lib/sentry.js";
@@ -218,12 +217,14 @@ export async function createApp({ redisClient }) {
   const x402Provider = process.env.X402_PROVIDER_PUBLIC_KEY;
   const x402Enabled = Boolean(x402Provider && process.env.X402_JWT_SECRET);
   const x402CreatePaymentAmount = process.env.X402_CREATE_PAYMENT_AMOUNT || "0.01";
+  const x402EnforceDefault = String(process.env.X402_ENFORCE_DEFAULT || "false").toLowerCase() === "true";
 
   if (x402Enabled) {
     const requireCreatePaymentCharge = x402Middleware({
       amount: x402CreatePaymentAmount,
       recipient: x402Provider,
       memo_prefix: "pluto-create",
+      enforceByDefault: x402EnforceDefault,
     });
 
     app.use("/api/create-payment", requireCreatePaymentCharge);
@@ -232,13 +233,11 @@ export async function createApp({ redisClient }) {
 
   app.use(
     "/api/create-payment",
-    x402Enabled ? x402AuthBridge() : (_req, _res, next) => next(),
     requireApiKeyAuth(),
     idempotencyMiddleware
   );
   app.use(
     "/api/sessions",
-    x402Enabled ? x402AuthBridge() : (_req, _res, next) => next(),
     requireApiKeyAuth(),
     idempotencyMiddleware
   );
@@ -249,6 +248,7 @@ export async function createApp({ redisClient }) {
 
   app.use("/api", createPaymentsRouter({ verifyPaymentRateLimit }));
   app.use("/api", createMerchantsRouter({ merchantRegistrationRateLimit }));
+  app.use("/api", authRouter);
   app.use("/api", metricsRouter);
   app.use("/api", webhooksRouter);
   app.use("/api/payments", paymentDetailsRouter); // NEW — GET /api/payments/:id
@@ -261,9 +261,6 @@ export async function createApp({ redisClient }) {
 
   // x402 pay-per-request verification (public — agents call this)
   app.use("/api", x402Router);
-
-  // Demo routes showing x402 in action
-  app.use("/api", demoRouter);
 
   // Sentry error handler — must come after all routes, before custom error handler
   setupSentryErrorHandler(app);
