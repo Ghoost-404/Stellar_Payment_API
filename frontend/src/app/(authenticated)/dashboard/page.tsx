@@ -151,6 +151,8 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-2">
               <Link
                 href="/docs/x402-agentic-payments"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center justify-between rounded-xl border border-[var(--pluto-200)] bg-[var(--pluto-50)] px-4 py-3 text-sm font-bold text-[var(--pluto-700)] transition-colors hover:bg-[var(--pluto-100)]"
               >
                 <span>Open x402 Integration Guide</span>

@@ -43,17 +43,21 @@ const app = express();
 
 app.post(
   "/webhooks/pluto",
+  // 1. Grab the raw request body (crucial for valid signature check)
   express.raw({type: "application/json"}),
   (req, res) => {
-    const secret = process.env.STELLAR_WEBHOOK_SECRET;
+    // 2. Use your PLUTO_WEBHOOK_SECRET from the dashboard
+    const secret = process.env.PLUTO_WEBHOOK_SECRET;
     const rawBody = req.body.toString("utf8");
     const incoming = req.get("PLUTO-Signature") || "";
 
+    // 3. Compute the expected HMAC-SHA256 signature
     const expected = `sha256=${crypto
       .createHmac("sha256", secret)
       .update(rawBody)
       .digest("hex")}`;
 
+    // 4. Use timingSafeEqual to prevent timing attacks
     const valid =
       incoming.length === expected.length &&
       crypto.timingSafeEqual(Buffer.from(incoming), Buffer.from(expected));
@@ -62,10 +66,11 @@ app.post(
       return res.status(401).json({error: "Invalid webhook signature"});
     }
 
+    // 5. Success! Parse the body and handle the business logic
     const payload = JSON.parse(rawBody);
 
     if (payload.event === "payment.confirmed") {
-      console.log("Confirmed payment:", payload.payment_id, payload.tx_id);
+      console.log("Confirmed payment:", payload.payment_id);
     }
 
     res.status(204).end();

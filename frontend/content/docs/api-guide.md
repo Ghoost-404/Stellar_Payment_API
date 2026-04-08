@@ -10,8 +10,9 @@ This guide is for teams integrating PLUTO into an external business app using th
 
 Recommended local setup used in this guide:
 
-- Store frontend: `https://your-app.vercel.app`
-- Store backend: `https://your-api.up.railway.app`
+- Store frontend: `https://your-app.frontend.url`
+- Store backend: `https://your-api.backend.url`
+
 - PLUTO frontend (checkout): `https://stellar-payment-api.vercel.app`
 - PLUTO backend (API): `https://pluto-api.up.railway.app`
 
@@ -19,20 +20,29 @@ Recommended local setup used in this guide:
 
 ## Your backend `.env` (non-x402)
 
-Store backend (`3001`) example:
+Store backend example:
 
 ```bash
+# The port your integration server runs on
 PORT=3001
+
+# The production PLUTO API base URL
 PLUTO_API_URL=https://pluto-api.up.railway.app
+
+# Your Private Merchant API Key (keep this secret!)
 PLUTO_API_KEY=sk_your_merchant_api_key
-MERCHANT_STELLAR_RECIPIENT=GDTVZPCLO7YHRF3JQV6TQI6XW3DIIMFWWQWI25WWLOUZM5AOCZTE5RA3
-USDC_ISSUER=GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+
+# The Stellar address where you want to receive payments
+MERCHANT_STELLAR_RECIPIENT=G_YOUR_RECEIVING_ADDRESS
+
+# Optional: Standard USDC issuer is auto-resolved if omitted
+# USDC_ISSUER=GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
 ```
 
 Notes:
 
 - Keep `PLUTO_API_KEY` only on your backend.
-- For non-native assets like `USDC`, always send `asset_issuer`.
+- `USDC_ISSUER` is **optional** for standard USDC; PLUTO resolves it automatically based on your network.
 
 ---
 
@@ -66,7 +76,8 @@ router.post("/checkout", async (req, res) => {
     const payload = {
       amount: req.body.amount,
       asset: "USDC",
-      asset_issuer: process.env.USDC_ISSUER,
+      // Optional: Standard issuer is used if process.env.USDC_ISSUER is missing
+      asset_issuer: process.env.USDC_ISSUER, 
       recipient: process.env.MERCHANT_STELLAR_RECIPIENT,
       metadata: { cart_id: req.body.cartId },
     };
@@ -114,9 +125,8 @@ Use one or both:
 ## Common mistakes
 
 - Sending `x-api-key` from browser/frontend code.
-- Missing `asset_issuer` when sending `USDC`.
+- Missing `asset_issuer` when sending **non-standard** tokens.
 - Pointing users to the wrong checkout domain.
-- Sending incorrect asset codes or amounts.
 
 ---
 

@@ -21,19 +21,31 @@ Recommended local setup used in this guide:
 
 ## Your backend `.env` (x402)
 
-Store backend (`3001`) example:
+Store backend example:
 
 ```bash
+# The port your integration server runs on
 PORT=3001
+
+# The production PLUTO API base URL
 PLUTO_API_URL=https://pluto-api.up.railway.app
+
+# Your Private Merchant API Key (keep this secret!)
 PLUTO_API_KEY=sk_your_merchant_api_key
 
-MERCHANT_STELLAR_RECIPIENT=GDTVZPCLO7YHRF3JQV6TQI6XW3DIIMFWWQWI25WWLOUZM5AOCZTE5RA3
-USDC_ISSUER=GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+# The Stellar address where you want to receive payments
+MERCHANT_STELLAR_RECIPIENT=G_YOUR_RECEIVING_ADDRESS
 
-X402_PAYER_SECRET=SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+# Optional: Standard USDC issuer is auto-resolved if omitted
+# USDC_ISSUER=GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+
+# Edit this and replace S... with the secret key for the account 
+# that will sign transactions and pay for the resource.
+X402_PAYER_SECRET=S_YOUR_PAYER_SECRET_KEY
+
+# Stellar network configuration (testnet or public)
 STELLAR_NETWORK=testnet
+STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
 ```
 
 Requirements for `X402_PAYER_SECRET` wallet:
@@ -41,6 +53,9 @@ Requirements for `X402_PAYER_SECRET` wallet:
 - funded with XLM (network fees)
 - has USDC trustline
 - has enough USDC for x402 charges
+
+> [!TIP]
+> `USDC_ISSUER` is **optional** for standard USDC; PLUTO resolves it automatically based on your `STELLAR_NETWORK`.
 
 ---
 
@@ -127,6 +142,7 @@ router.post("/checkout", async (req, res) => {
     const payload = {
       amount: req.body.amount,
       asset: "USDC",
+      // Optional: Standard issuer is used if process.env.USDC_ISSUER is missing
       asset_issuer: process.env.USDC_ISSUER,
       recipient: process.env.MERCHANT_STELLAR_RECIPIENT,
       metadata: { cart_id: req.body.cartId },

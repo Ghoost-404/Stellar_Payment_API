@@ -150,7 +150,7 @@ function createPaymentsRouter({
    *                 description: Asset code (e.g. XLM, USDC)
    *               asset_issuer:
    *                 type: string
-   *                 description: Asset issuer (required for non-native assets)
+   *                 description: Asset issuer (optional for standard assets like USDC; PLUTO resolves these automatically)
    *               recipient:
    *                 type: string
    *                 description: Stellar address of the recipient
