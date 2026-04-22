@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { registerMerchant, type Merchant as AuthMerchant } from "../lib/auth";
 import { toast } from "sonner";
 import MaskedValue from "./MaskedValue";
@@ -14,6 +14,43 @@ import { Spinner } from "./ui/Spinner";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BUSINESS_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9\s&'.,-]{1,79}$/;
+
+// Memoized password strength indicator to prevent unnecessary re-renders
+const PasswordStrengthIndicator = ({
+  score,
+  passwordLength,
+}: {
+  score: number;
+  passwordLength: number;
+}) => (
+  <div className="mt-1 flex flex-col gap-2">
+    <div className="flex h-1 gap-1">
+      {[0, 1, 2, 3].map((index) => {
+        const activeBars = score === 0 ? 1 : score === 4 ? 4 : score + 1;
+        const isActive = passwordLength > 0 && index < activeBars;
+        let bgColor = "bg-[#E8E8E8]";
+
+        if (isActive) {
+          if (score <= 1) bgColor = "bg-red-400";
+          else if (score === 2) bgColor = "bg-yellow-400";
+          else bgColor = "bg-[#0A0A0A]";
+        }
+
+        return (
+          <div
+            key={index}
+            className={`flex-1 rounded-full transition-colors duration-300 ${bgColor}`}
+          />
+        );
+      })}
+    </div>
+    {passwordLength > 0 && (
+      <p className="text-[9px] text-[#6B6B6B] text-right font-black uppercase tracking-widest">
+        {["Weak", "Fair", "Good", "Strong", "Strong"][score]}
+      </p>
+    )}
+  </div>
+);
 
 export default function RegistrationForm() {
   const setToken = useSetMerchantToken();
@@ -33,49 +70,60 @@ export default function RegistrationForm() {
     string | null
   >(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [registeredMerchant, setRegisteredMerchant] = useState<AuthMerchant | null>(
-    null,
-  );
+  const [registeredMerchant, setRegisteredMerchant] =
+    useState<AuthMerchant | null>(null);
 
   const businessNameTrimmed = businessName.trim();
   const emailTrimmed = email.trim();
   const notificationEmailTrimmed = notificationEmail.trim();
   const passwordScore = password ? zxcvbn(password).score : 0;
 
-  const validateBusinessName = (value: string) => {
+  const validateBusinessName = useCallback((value: string) => {
     const trimmed = value.trim();
     if (!trimmed) return "Business name is required.";
     if (!BUSINESS_NAME_REGEX.test(trimmed)) {
       return "Use 2-80 characters (letters, numbers, spaces, and & ' . , -).";
     }
     return null;
-  };
+  }, []);
 
-  const validateEmail = (value: string) => {
+  const validateEmail = useCallback((value: string) => {
     const trimmed = value.trim();
     if (!trimmed) return "Email is required.";
     if (!EMAIL_REGEX.test(trimmed)) return "Enter a valid email address.";
     return null;
-  };
+  }, []);
 
-  const validatePassword = (value: string) => {
+  const validatePassword = useCallback((value: string) => {
     if (!value) return "Password is required.";
     if (value.length < 8) return "Password must be at least 8 characters.";
     if (zxcvbn(value).score < 2) {
       return "Use a stronger password with mixed characters.";
     }
     return null;
-  };
+  }, []);
 
-  const isFormValid =
-    !businessNameError &&
-    !emailError &&
-    !notificationEmailError &&
-    !passwordError &&
-    businessNameTrimmed.length > 0 &&
-    emailTrimmed.length > 0 &&
-    notificationEmailTrimmed.length > 0 &&
-    password.length > 0;
+  const isFormValid = useMemo(
+    () =>
+      !businessNameError &&
+      !emailError &&
+      !notificationEmailError &&
+      !passwordError &&
+      businessNameTrimmed.length > 0 &&
+      emailTrimmed.length > 0 &&
+      notificationEmailTrimmed.length > 0 &&
+      password.length > 0,
+    [
+      businessNameError,
+      emailError,
+      notificationEmailError,
+      passwordError,
+      businessNameTrimmed,
+      emailTrimmed,
+      notificationEmailTrimmed,
+      password,
+    ],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +157,7 @@ export default function RegistrationForm() {
         notificationEmailTrimmed,
         password,
       );
-      
+
       // Auto-login logic
       if (data.token) {
         setToken(data.token);
@@ -199,16 +247,22 @@ export default function RegistrationForm() {
               setBusinessNameError(validateBusinessName(nextValue));
             }}
             aria-invalid={Boolean(businessNameError)}
-            aria-describedby={businessNameError ? "business-name-error" : undefined}
+            aria-describedby={
+              businessNameError ? "business-name-error" : undefined
+            }
             className={`rounded-2xl border bg-[#F9F9F9] p-4 text-sm font-bold text-[#0A0A0A] placeholder-[#A0A0A0] transition-all focus:bg-white focus:outline-none ${
-              businessNameError 
-                ? "border-red-500/50 focus:border-red-500" 
+              businessNameError
+                ? "border-red-500/50 focus:border-red-500"
                 : "border-[#E8E8E8] focus:border-[#0A0A0A]"
             }`}
             placeholder="PLUTO Merchant"
           />
           {businessNameError && (
-            <p id="business-name-error" className="text-[10px] font-bold text-red-500 uppercase tracking-widest" role="alert">
+            <p
+              id="business-name-error"
+              className="text-[10px] font-bold text-red-500 uppercase tracking-widest"
+              role="alert"
+            >
               {businessNameError}
             </p>
           )}
@@ -234,14 +288,18 @@ export default function RegistrationForm() {
             aria-invalid={Boolean(emailError)}
             aria-describedby={emailError ? "primary-email-error" : undefined}
             className={`rounded-2xl border bg-[#F9F9F9] p-4 text-sm font-bold text-[#0A0A0A] placeholder-[#A0A0A0] transition-all focus:bg-white focus:outline-none ${
-              emailError 
-                ? "border-red-500/50 focus:border-red-500" 
+              emailError
+                ? "border-red-500/50 focus:border-red-500"
                 : "border-[#E8E8E8] focus:border-[#0A0A0A]"
             }`}
             placeholder="owner@business.com"
           />
           {emailError && (
-            <p id="primary-email-error" className="text-[10px] font-bold text-red-500 uppercase tracking-widest" role="alert">
+            <p
+              id="primary-email-error"
+              className="text-[10px] font-bold text-red-500 uppercase tracking-widest"
+              role="alert"
+            >
               {emailError}
             </p>
           )}
@@ -266,42 +324,22 @@ export default function RegistrationForm() {
             aria-invalid={Boolean(passwordError)}
             aria-describedby={passwordError ? "password-error" : undefined}
             className={`rounded-2xl border bg-[#F9F9F9] p-4 text-sm font-bold text-[#0A0A0A] placeholder-[#A0A0A0] transition-all focus:bg-white focus:outline-none ${
-              passwordError 
-                ? "border-red-500/50 focus:border-red-500" 
+              passwordError
+                ? "border-red-500/50 focus:border-red-500"
                 : "border-[#E8E8E8] focus:border-[#0A0A0A]"
             }`}
             placeholder="••••••••"
           />
-          <div className="mt-1 flex flex-col gap-2">
-            <div className="flex h-1 gap-1">
-              {[0, 1, 2, 3].map((index) => {
-                const score = passwordScore;
-                const activeBars = score === 0 ? 1 : score === 4 ? 4 : score + 1;
-                const isActive = password.length > 0 && index < activeBars;
-                let bgColor = "bg-[#E8E8E8]";
-
-                if (isActive) {
-                  if (score <= 1) bgColor = "bg-red-400";
-                  else if (score === 2) bgColor = "bg-yellow-400";
-                  else bgColor = "bg-[#0A0A0A]";
-                }
-
-                return (
-                  <div
-                    key={index}
-                    className={`flex-1 rounded-full transition-colors duration-300 ${bgColor}`}
-                  />
-                );
-              })}
-            </div>
-            {password.length > 0 && (
-              <p className="text-[9px] text-[#6B6B6B] text-right font-black uppercase tracking-widest">
-                {["Weak", "Fair", "Good", "Strong", "Strong"][passwordScore]}
-              </p>
-            )}
-          </div>
+          <PasswordStrengthIndicator
+            score={passwordScore}
+            passwordLength={password.length}
+          />
           {passwordError && (
-            <p id="password-error" className="text-[10px] font-bold text-red-500 uppercase tracking-widest" role="alert">
+            <p
+              id="password-error"
+              className="text-[10px] font-bold text-red-500 uppercase tracking-widest"
+              role="alert"
+            >
               {passwordError}
             </p>
           )}
@@ -329,8 +367,8 @@ export default function RegistrationForm() {
               notificationEmailError ? "notification-email-error" : undefined
             }
             className={`rounded-2xl border bg-[#F9F9F9] p-4 text-sm font-bold text-[#0A0A0A] placeholder-[#A0A0A0] transition-all focus:bg-white focus:outline-none ${
-              notificationEmailError 
-                ? "border-red-500/50 focus:border-red-500" 
+              notificationEmailError
+                ? "border-red-500/50 focus:border-red-500"
                 : "border-[#E8E8E8] focus:border-[#0A0A0A]"
             }`}
             placeholder="alerts@business.com"
