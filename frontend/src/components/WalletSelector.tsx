@@ -112,8 +112,8 @@ export default function WalletSelector({ networkPassphrase, onConnected }: Walle
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="text-sm font-bold text-[#0A0A0A]">{t("chooseWallet")}</p>
-        <p className="text-xs text-[#6B6B6B] mt-0.5">Connect your Stellar wallet to complete this payment.</p>
+        <p className="text-sm font-bold text-white">{t("chooseWallet")}</p>
+        <p className="text-xs text-slate-400 mt-0.5">Connect your Stellar wallet to complete this payment.</p>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -135,7 +135,7 @@ export default function WalletSelector({ networkPassphrase, onConnected }: Walle
               {/* Icon */}
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] transition-colors duration-200 group-hover:border-[var(--pluto-200)] group-hover:bg-[var(--pluto-50)]">
                 {ICONS[p.id] ?? (
-                  <svg className="h-5 w-5 text-[#6B6B6B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
                 )}
@@ -144,14 +144,14 @@ export default function WalletSelector({ networkPassphrase, onConnected }: Walle
               {/* Label */}
               <div className="flex flex-1 flex-col gap-0.5">
                 {isConnecting ? (
-                  <span className="flex items-center gap-2 text-sm font-bold text-[#0A0A0A]">
+                  <span className="flex items-center gap-2 text-sm font-bold text-white">
                     <Spinner size="sm" />
                     {isWc ? t("walletConnectWaiting") : "Connecting…"}
                   </span>
                 ) : (
                   <>
-                    <span className="text-sm font-bold text-[#0A0A0A]">{p.name}</span>
-                    <span className="text-[10px] font-medium text-[#6B6B6B]">
+                    <span className="text-sm font-bold text-white transition-colors group-hover:text-mint">{p.name}</span>
+                    <span className="text-[10px] font-medium text-slate-500">
                       {isDisabled
                         ? (isWc ? t("noProjectId") : t("notInstalled"))
                         : SUBTITLES[p.id] ?? "Click to connect"}
@@ -173,17 +173,17 @@ export default function WalletSelector({ networkPassphrase, onConnected }: Walle
 
       {/* WalletConnect QR */}
       {wcUri && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#E8E8E8] bg-[#F9F9F9] p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#6B6B6B]">{t("scanTitle")}</p>
-          <div className="rounded-xl bg-white border border-[#E8E8E8] p-3">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{t("scanTitle")}</p>
+          <div className="rounded-xl bg-white p-3 shadow-[0_0_20px_rgba(255,255,255,0.05)]">
             <QRCodeSVG value={wcUri} size={200} level="M" fgColor="#0A0A0A" bgColor="#ffffff" />
           </div>
-          <p className="text-[10px] text-[#6B6B6B] text-center">Scan with Freighter mobile or any WalletConnect-compatible wallet</p>
+          <p className="text-[10px] text-slate-500 text-center">Scan with Freighter mobile or any WalletConnect-compatible wallet</p>
         </div>
       )}
 
       {(wcError || connectError) && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-600">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center text-sm text-red-400">
           {wcError || connectError}
         </div>
       )}
