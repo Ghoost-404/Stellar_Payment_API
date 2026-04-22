@@ -8,34 +8,91 @@ import "react-loading-skeleton/dist/skeleton.css";
 import PaymentDetailModal from "@/components/PaymentDetailModal";
 import PaymentDetailsSheet from "@/components/PaymentDetailsSheet";
 import { localeToLanguageTag } from "@/i18n/config";
-import { useHydrateMerchantStore, useMerchantApiKey, useMerchantId } from "@/lib/merchant-store";
+import {
+  useHydrateMerchantStore,
+  useMerchantApiKey,
+  useMerchantId,
+} from "@/lib/merchant-store";
 import { usePaymentSocket } from "@/lib/usePaymentSocket";
 import { convertToCSV, downloadCSV } from "@/utils/csv";
 import Link from "next/link";
 
 interface Payment {
-  id: string; amount: string; asset: string; recipient: string;
-  status: string; description: string | null; created_at: string;
+  id: string;
+  amount: string;
+  asset: string;
+  recipient: string;
+  status: string;
+  description: string | null;
+  created_at: string;
 }
-interface PaginatedResponse { payments: Payment[]; total_count: number; }
-interface FilterState { search: string; status: string; asset: string; dateFrom: string; dateTo: string; page: number; limit: number; }
+interface PaginatedResponse {
+  payments: Payment[];
+  total_count: number;
+}
+interface FilterState {
+  search: string;
+  status: string;
+  asset: string;
+  dateFrom: string;
+  dateTo: string;
+  page: number;
+  limit: number;
+}
 type SortColumn = "status" | "amount" | "recipient" | "created_at";
 type SortDirection = "asc" | "desc";
 
-const STATUS_OPTIONS = ["all", "pending", "confirmed", "failed", "refunded"] as const;
+const STATUS_OPTIONS = [
+  "all",
+  "pending",
+  "confirmed",
+  "failed",
+  "refunded",
+] as const;
 const ASSET_OPTIONS = ["all", "XLM", "USDC"] as const;
-const DEFAULT_FILTERS: FilterState = { search: "", status: "all", asset: "all", dateFrom: "", dateTo: "", page: 1, limit: 10 };
+const DEFAULT_FILTERS: FilterState = {
+  search: "",
+  status: "all",
+  asset: "all",
+  dateFrom: "",
+  dateTo: "",
+  page: 1,
+  limit: 10,
+};
 const DEFAULT_SORT: SortColumn = "created_at";
 const DEFAULT_DIR: SortDirection = "desc";
 
 function filtersFromParams(p: URLSearchParams): FilterState {
-  return { search: p.get("search") ?? "", status: p.get("status") ?? "all", asset: p.get("asset") ?? "all", dateFrom: p.get("date_from") ?? "", dateTo: p.get("date_to") ?? "", page: parseInt(p.get("page") ?? "1", 10), limit: parseInt(p.get("limit") ?? "10", 10) };
+  return {
+    search: p.get("search") ?? "",
+    status: p.get("status") ?? "all",
+    asset: p.get("asset") ?? "all",
+    dateFrom: p.get("date_from") ?? "",
+    dateTo: p.get("date_to") ?? "",
+    page: parseInt(p.get("page") ?? "1", 10),
+    limit: parseInt(p.get("limit") ?? "10", 10),
+  };
 }
 function sortFromParams(p: URLSearchParams) {
-  const c = p.get("sortColumn"); const d = p.get("sortDirection");
-  return { sortColumn: (c === "status" || c === "amount" || c === "recipient" || c === "created_at" ? c : DEFAULT_SORT) as SortColumn, sortDirection: (d === "asc" || d === "desc" ? d : DEFAULT_DIR) as SortDirection };
+  const c = p.get("sortColumn");
+  const d = p.get("sortDirection");
+  return {
+    sortColumn: (c === "status" ||
+    c === "amount" ||
+    c === "recipient" ||
+    c === "created_at"
+      ? c
+      : DEFAULT_SORT) as SortColumn,
+    sortDirection: (d === "asc" || d === "desc"
+      ? d
+      : DEFAULT_DIR) as SortDirection,
+  };
 }
-function buildParams(f: FilterState, sc: SortColumn, sd: SortDirection): URLSearchParams {
+function buildParams(
+  f: FilterState,
+  sc: SortColumn,
+  sd: SortDirection,
+): URLSearchParams {
   const p = new URLSearchParams();
   if (f.search) p.set("search", f.search);
   if (f.status !== "all") p.set("status", f.status);
@@ -52,36 +109,64 @@ function buildParams(f: FilterState, sc: SortColumn, sd: SortDirection): URLSear
 const STATUS_STYLE: Record<string, string> = {
   confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
   completed: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  pending:   "bg-yellow-50 text-yellow-700 border-yellow-200",
-  failed:    "bg-red-50 text-red-700 border-red-200",
-  refunded:  "bg-blue-50 text-blue-700 border-blue-200",
+  pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  failed: "bg-red-50 text-red-700 border-red-200",
+  refunded: "bg-blue-50 text-blue-700 border-blue-200",
 };
 const STATUS_DOT: Record<string, string> = {
-  confirmed: "bg-emerald-500", completed: "bg-emerald-500",
-  pending: "bg-yellow-500", failed: "bg-red-500", refunded: "bg-blue-500",
+  confirmed: "bg-emerald-500",
+  completed: "bg-emerald-500",
+  pending: "bg-yellow-500",
+  failed: "bg-red-500",
+  refunded: "bg-blue-500",
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const cls = STATUS_STYLE[status] ?? "bg-[#F9F9F9] text-[#6B6B6B] border-[#E8E8E8]";
+  const cls =
+    STATUS_STYLE[status] ?? "bg-[#F9F9F9] text-[#6B6B6B] border-[#E8E8E8]";
   const dot = STATUS_DOT[status] ?? "bg-[#6B6B6B]";
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${cls}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${cls}`}
+    >
       <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
       {status}
     </span>
   );
 }
 
-function SortBtn({ active, dir, onClick, children }: { active: boolean; dir: SortDirection; onClick: () => void; children: React.ReactNode }) {
+function SortBtn({
+  active,
+  dir,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  dir: SortDirection;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <button type="button" onClick={onClick} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B] hover:text-[#0A0A0A] transition-colors">
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B] hover:text-[#0A0A0A] transition-colors"
+    >
       {children}
-      <span className={`transition-opacity ${active ? "opacity-100" : "opacity-30"}`}>{dir === "asc" ? "↑" : "↓"}</span>
+      <span
+        className={`transition-opacity ${active ? "opacity-100" : "opacity-30"}`}
+      >
+        {dir === "asc" ? "↑" : "↓"}
+      </span>
     </button>
   );
 }
 
-export default function RecentPayments({ showSkeleton = false }: { showSkeleton?: boolean }) {
+export default function RecentPayments({
+  showSkeleton = false,
+}: {
+  showSkeleton?: boolean;
+}) {
   const t = useTranslations("recentPayments");
   const locale = localeToLanguageTag(useLocale());
   const pathname = usePathname();
@@ -91,9 +176,20 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
   const merchantId = useMerchantId();
   useHydrateMerchantStore();
 
-  const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
-  const { sortColumn, sortDirection } = useMemo(() => sortFromParams(searchParams), [searchParams]);
-  const hasActiveFilters = filters.search || filters.status !== "all" || filters.asset !== "all" || filters.dateFrom || filters.dateTo;
+  const filters = useMemo(
+    () => filtersFromParams(searchParams),
+    [searchParams],
+  );
+  const { sortColumn, sortDirection } = useMemo(
+    () => sortFromParams(searchParams),
+    [searchParams],
+  );
+  const hasActiveFilters =
+    filters.search ||
+    filters.status !== "all" ||
+    filters.asset !== "all" ||
+    filters.dateFrom ||
+    filters.dateTo;
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +204,9 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
   const [searchInput, setSearchInput] = useState(filters.search);
 
   // Sync local search with URL params (e.g. on back navigation)
-  useEffect(() => { setSearchInput(filters.search); }, [filters.search]);
+  useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
 
   // Debounce search → URL update
   useEffect(() => {
@@ -118,31 +216,61 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
       }
     }, 350);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
-  const updateFilters = useCallback((nf: FilterState, sc = sortColumn, sd = sortDirection) => {
-    const q = buildParams(nf, sc, sd).toString();
-    router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
-  }, [pathname, router, sortColumn, sortDirection]);
+  const updateFilters = useCallback(
+    (nf: FilterState, sc = sortColumn, sd = sortDirection) => {
+      const q = buildParams(nf, sc, sd).toString();
+      router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+    },
+    [pathname, router, sortColumn, sortDirection],
+  );
 
-  const handleFilterChange = useCallback((key: keyof FilterState, value: string | number) => {
-    updateFilters({ ...filters, [key]: value, ...(key !== "page" ? { page: 1 } : {}) });
-  }, [filters, updateFilters]);
+  const handleFilterChange = useCallback(
+    (key: keyof FilterState, value: string | number) => {
+      updateFilters({
+        ...filters,
+        [key]: value,
+        ...(key !== "page" ? { page: 1 } : {}),
+      });
+    },
+    [filters, updateFilters],
+  );
 
-  const clearFilter = useCallback((key: keyof FilterState) => {
-    updateFilters({ ...filters, [key]: key === "status" || key === "asset" ? "all" : "", page: 1 });
-  }, [filters, updateFilters]);
+  const clearFilter = useCallback(
+    (key: keyof FilterState) => {
+      updateFilters({
+        ...filters,
+        [key]: key === "status" || key === "asset" ? "all" : "",
+        page: 1,
+      });
+    },
+    [filters, updateFilters],
+  );
 
-  const handleSort = useCallback((col: SortColumn) => {
-    const nd = sortColumn === col && sortDirection === "asc" ? "desc" : "asc";
-    updateFilters(filters, col, nd);
-  }, [filters, sortColumn, sortDirection, updateFilters]);
+  const handleSort = useCallback(
+    (col: SortColumn) => {
+      const nd = sortColumn === col && sortDirection === "asc" ? "desc" : "asc";
+      updateFilters(filters, col, nd);
+    },
+    [filters, sortColumn, sortDirection, updateFilters],
+  );
 
   const handleConfirmed = useCallback((event: { id: string }) => {
-    setPayments(prev => prev.map(p => p.id === event.id ? { ...p, status: "confirmed" } : p));
-    setFlashedIds(prev => new Set([...prev, event.id]));
-    setTimeout(() => setFlashedIds(prev => { const n = new Set(prev); n.delete(event.id); return n; }), 2000);
+    setPayments((prev) =>
+      prev.map((p) => (p.id === event.id ? { ...p, status: "confirmed" } : p)),
+    );
+    setFlashedIds((prev) => new Set([...prev, event.id]));
+    setTimeout(
+      () =>
+        setFlashedIds((prev) => {
+          const n = new Set(prev);
+          n.delete(event.id);
+          return n;
+        }),
+      2000,
+    );
   }, []);
 
   usePaymentSocket(merchantId, handleConfirmed);
@@ -151,31 +279,54 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
     const controller = new AbortController();
     async function fetch_() {
       try {
-        setLoading(true); setError(null);
-        if (!apiKey) { setError(t("missingApiKey")); setPayments([]); setTotalCount(0); setLoading(false); return; }
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        setLoading(true);
+        setError(null);
+        if (!apiKey) {
+          setError(t("missingApiKey"));
+          setPayments([]);
+          setTotalCount(0);
+          setLoading(false);
+          return;
+        }
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
         const params = buildParams(filters, sortColumn, sortDirection);
-        const res = await fetch(`${apiUrl}/api/payments?${params}`, { headers: { "x-api-key": apiKey }, signal: controller.signal });
+        const res = await fetch(`${apiUrl}/api/payments?${params}`, {
+          headers: { "x-api-key": apiKey },
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error(t("fetchFailed"));
         const data: PaginatedResponse = await res.json();
-        setPayments(data.payments ?? []); setTotalCount(data.total_count ?? 0);
+        setPayments(data.payments ?? []);
+        setTotalCount(data.total_count ?? 0);
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : t("loadFailed"));
-      } finally { setLoading(false); }
+      } finally {
+        setLoading(false);
+      }
     }
     fetch_();
     return () => controller.abort();
   }, [apiKey, filters, sortColumn, sortDirection, t]);
 
   const sortedPayments = useMemo(() => {
-    const order: Record<string, number> = { pending: 0, confirmed: 1, completed: 2, failed: 3, refunded: 4 };
+    const order: Record<string, number> = {
+      pending: 0,
+      confirmed: 1,
+      completed: 2,
+      failed: 3,
+      refunded: 4,
+    };
     return [...payments].sort((a, b) => {
       let r = 0;
       if (sortColumn === "amount") r = Number(a.amount) - Number(b.amount);
-      else if (sortColumn === "recipient") r = a.recipient.localeCompare(b.recipient);
-      else if (sortColumn === "status") r = (order[a.status] ?? 99) - (order[b.status] ?? 99);
-      else r = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      else if (sortColumn === "recipient")
+        r = a.recipient.localeCompare(b.recipient);
+      else if (sortColumn === "status")
+        r = (order[a.status] ?? 99) - (order[b.status] ?? 99);
+      else
+        r = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       if (r === 0) r = a.id.localeCompare(b.id);
       return sortDirection === "asc" ? r : -r;
     });
@@ -183,8 +334,18 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
 
   const handleDownloadCSV = () => {
     if (!sortedPayments.length) return;
-    const csv = convertToCSV(sortedPayments.map(p => ({ ID: p.id, Amount: `${p.amount} ${p.asset}`, Status: p.status, Recipient: p.recipient, Description: p.description ?? "", Date: new Date(p.created_at).toLocaleString() })));
-    if (csv) downloadCSV(csv, `payments_${new Date().toISOString().slice(0, 10)}.csv`);
+    const csv = convertToCSV(
+      sortedPayments.map((p) => ({
+        ID: p.id,
+        Amount: `${p.amount} ${p.asset}`,
+        Status: p.status,
+        Recipient: p.recipient,
+        Description: p.description ?? "",
+        Date: new Date(p.created_at).toLocaleString(),
+      })),
+    );
+    if (csv)
+      downloadCSV(csv, `payments_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const totalPages = Math.max(1, Math.ceil(totalCount / filters.limit));
@@ -224,11 +385,28 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center flex flex-col items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-          <svg className="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+          <svg
+            className="h-6 w-6 text-red-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+            />
+          </svg>
         </div>
         <p className="font-bold text-red-700">Unable to load payments</p>
         <p className="text-sm text-red-500">{error}</p>
-        <button onClick={() => window.location.reload()} className="rounded-xl border border-red-200 bg-white px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-all">Retry</button>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-xl border border-red-200 bg-white px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-all"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -238,7 +416,19 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
     return (
       <div className="rounded-2xl border border-[#E8E8E8] bg-[#F9F9F9] p-12 text-center flex flex-col items-center gap-4">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white border border-[#E8E8E8]">
-          <svg className="h-7 w-7 text-[#6B6B6B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+          <svg
+            className="h-7 w-7 text-[#6B6B6B]"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            />
+          </svg>
         </div>
         <p className="text-lg font-bold text-[#0A0A0A]">{t("emptyTitle")}</p>
         <p className="text-sm text-[#6B6B6B] max-w-sm">{t("emptyDescription")}</p>
@@ -250,14 +440,29 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
   // ── Main table ────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4">
-
       {/* Filters */}
-      <div className="rounded-2xl border border-[#E8E8E8] bg-white p-5 flex flex-col gap-4">
+      <div className="rounded-2xl border border-[#E8E8E8] bg-white p-3 sm:p-5 flex flex-col gap-3 sm:gap-4">
         <div className="relative">
-          <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by ID, description or recipient…"
-            className="w-full rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] py-2.5 pl-10 pr-4 text-sm text-[#0A0A0A] placeholder-[#A0A0A0] focus:border-[#0A0A0A] focus:bg-white focus:outline-none transition-all" />
-          <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A0A0A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            className="w-full rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] py-2.5 pl-10 pr-4 text-sm text-[#0A0A0A] placeholder-[#A0A0A0] focus:border-[#0A0A0A] focus:bg-white focus:outline-none transition-all touch-manipulation"
+          />
+          <svg
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A0A0A0] pointer-events-none"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -269,10 +474,18 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
             className="rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-3 py-2.5 text-sm text-[#0A0A0A] focus:border-[#0A0A0A] focus:outline-none transition-all">
             {ASSET_OPTIONS.map(a => <option key={a} value={a}>{a === "all" ? t("allAssets") : a}</option>)}
           </select>
-          <input type="date" value={filters.dateFrom} onChange={e => handleFilterChange("dateFrom", e.target.value)}
-            className="rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-3 py-2.5 text-sm text-[#0A0A0A] focus:border-[#0A0A0A] focus:outline-none transition-all [color-scheme:light]" />
-          <input type="date" value={filters.dateTo} onChange={e => handleFilterChange("dateTo", e.target.value)}
-            className="rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-3 py-2.5 text-sm text-[#0A0A0A] focus:border-[#0A0A0A] focus:outline-none transition-all [color-scheme:light]" />
+          <input
+            type="date"
+            value={filters.dateFrom}
+            onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
+            className="rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-3 py-2.5 text-sm text-[#0A0A0A] focus:border-[#0A0A0A] focus:outline-none transition-all [color-scheme:light] touch-manipulation"
+          />
+          <input
+            type="date"
+            value={filters.dateTo}
+            onChange={(e) => handleFilterChange("dateTo", e.target.value)}
+            className="rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-3 py-2.5 text-sm text-[#0A0A0A] focus:border-[#0A0A0A] focus:outline-none transition-all [color-scheme:light] touch-manipulation"
+          />
         </div>
 
         {hasActiveFilters && (
@@ -342,9 +555,75 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
                   </button>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-[#F0F0F0]">
+              {sortedPayments.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-3 sm:px-5 py-12 text-center text-sm text-[#6B6B6B]"
+                  >
+                    No payments match your filters.
+                  </td>
+                </tr>
+              ) : (
+                sortedPayments.map((payment) => (
+                  <tr
+                    key={payment.id}
+                    onClick={() => {
+                      setSelectedPayment(payment.id);
+                      setIsSheetOpen(true);
+                    }}
+                    className={`group cursor-pointer transition-colors hover:bg-[#F9F9F9] active:bg-[#F5F5F5] ${flashedIds.has(payment.id) ? "bg-emerald-50" : ""}`}
+                  >
+                    <td className="px-3 sm:px-5 py-3 sm:py-4">
+                      <StatusBadge status={payment.status} />
+                    </td>
+                    <td className="px-3 sm:px-5 py-3 sm:py-4">
+                      <span className="font-bold text-[#0A0A0A] text-sm sm:text-base">
+                        {payment.amount}
+                      </span>
+                      <span className="ml-1.5 text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B]">
+                        {payment.asset}
+                      </span>
+                    </td>
+                    <td className="hidden px-3 sm:px-5 py-3 sm:py-4 sm:table-cell">
+                      <code className="font-mono text-xs text-[#6B6B6B]">
+                        {payment.recipient.slice(0, 8)}…
+                        {payment.recipient.slice(-6)}
+                      </code>
+                    </td>
+                    <td className="hidden px-3 sm:px-5 py-3 sm:py-4 md:table-cell text-sm text-[#6B6B6B] max-w-[160px] truncate">
+                      {payment.description || (
+                        <span className="text-[#C0C0C0]">—</span>
+                      )}
+                    </td>
+                    <td className="hidden px-3 sm:px-5 py-3 sm:py-4 lg:table-cell text-sm text-[#6B6B6B]">
+                      {new Date(payment.created_at).toLocaleDateString(locale, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-3 sm:px-5 py-3 sm:py-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPayment(payment.id);
+                          setIsSheetOpen(true);
+                        }}
+                        className="rounded-lg border border-[#E8E8E8] bg-white px-2 sm:px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] sm:opacity-0 sm:group-hover:opacity-100 hover:bg-[#F5F5F5] transition-all touch-manipulation min-h-[36px]"
+                      >
+                        <span className="hidden sm:inline">View →</span>
+                        <span className="sm:hidden">→</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Pagination */}
@@ -352,9 +631,18 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
         <div className="flex flex-col gap-4 rounded-2xl border border-[#E8E8E8] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex w-full items-center gap-2 text-sm text-[#6B6B6B] sm:w-auto">
             <span className="font-medium">Rows:</span>
-            <select value={filters.limit} onChange={e => handleFilterChange("limit", parseInt(e.target.value, 10))}
-              className="rounded-lg border border-[#E8E8E8] bg-[#F9F9F9] px-2 py-1 text-sm text-[#0A0A0A] focus:outline-none">
-              {[10,20,50,100].map(n => <option key={n} value={n}>{n}</option>)}
+            <select
+              value={filters.limit}
+              onChange={(e) =>
+                handleFilterChange("limit", parseInt(e.target.value, 10))
+              }
+              className="rounded-lg border border-[#E8E8E8] bg-[#F9F9F9] px-2 py-1 text-sm text-[#0A0A0A] focus:outline-none touch-manipulation min-h-[36px]"
+            >
+              {[10, 20, 50, 100].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap">
@@ -362,27 +650,68 @@ export default function RecentPayments({ showSkeleton = false }: { showSkeleton?
               className="rounded-xl border border-[#E8E8E8] bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] hover:bg-[#F5F5F5] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
               ← Prev
             </button>
-            <span className="text-xs font-medium text-[#6B6B6B] px-2">Page {filters.page} of {totalPages}</span>
-            <button disabled={filters.page >= totalPages} onClick={() => handleFilterChange("page", filters.page + 1)}
-              className="rounded-xl border border-[#E8E8E8] bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] hover:bg-[#F5F5F5] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-              Next →
+            <span className="text-xs font-medium text-[#6B6B6B] px-1 sm:px-2 whitespace-nowrap">
+              <span className="hidden xs:inline">
+                Page {filters.page} of {totalPages}
+              </span>
+              <span className="xs:hidden">
+                {filters.page}/{totalPages}
+              </span>
+            </span>
+            <button
+              disabled={filters.page >= totalPages}
+              onClick={() => handleFilterChange("page", filters.page + 1)}
+              className="rounded-xl border border-[#E8E8E8] bg-white px-3 sm:px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] hover:bg-[#F5F5F5] disabled:opacity-40 disabled:cursor-not-allowed transition-all touch-manipulation min-h-[44px]"
+            >
+              <span className="hidden xs:inline">Next →</span>
+              <span className="xs:hidden">→</span>
             </button>
           </div>
         </div>
       )}
 
-      <PaymentDetailModal paymentId={selectedPayment} isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedPayment(null); }} />
-      <PaymentDetailsSheet paymentId={selectedPayment} isOpen={isSheetOpen} onClose={() => { setIsSheetOpen(false); setSelectedPayment(null); }} />
+      <PaymentDetailModal
+        paymentId={selectedPayment}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedPayment(null);
+        }}
+      />
+      <PaymentDetailsSheet
+        paymentId={selectedPayment}
+        isOpen={isSheetOpen}
+        onClose={() => {
+          setIsSheetOpen(false);
+          setSelectedPayment(null);
+        }}
+      />
     </div>
   );
 }
 
 function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-[#E8E8E8] bg-[#F9F9F9] px-3 py-1 text-[10px] font-bold text-[#0A0A0A]">
+    <span className="inline-flex items-center gap-1 rounded-full border border-[#E8E8E8] bg-[#F9F9F9] px-3 py-1.5 text-[10px] font-bold text-[#0A0A0A]">
       {label}
-      <button onClick={onRemove} className="ml-0.5 rounded-full p-0.5 hover:bg-[#E8E8E8] transition-colors">
-        <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+      <button
+        onClick={onRemove}
+        className="ml-0.5 rounded-full p-1 hover:bg-[#E8E8E8] transition-colors touch-manipulation"
+        aria-label={`Remove ${label} filter`}
+      >
+        <svg
+          className="h-2.5 w-2.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2.5}
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
       </button>
     </span>
   );

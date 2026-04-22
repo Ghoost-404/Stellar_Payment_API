@@ -38,12 +38,12 @@ const ButtonBase = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {isLoading ? (
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 sm:gap-2">
             <Spinner
               size="sm"
               className={variant === "primary" ? "text-white" : "text-pluto-500"}
             />
-            <span>Loading...</span>
+            <span className="hidden xs:inline">Loading...</span>
           </span>
         ) : (
           children
