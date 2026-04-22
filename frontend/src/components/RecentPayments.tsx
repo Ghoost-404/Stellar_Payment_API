@@ -532,7 +532,7 @@ export default function RecentPayments({
             ) : sortedPayments.map(payment => (
               <tr key={payment.id}
                 onClick={() => { setSelectedPayment(payment.id); setIsSheetOpen(true); }}
-                className={`group cursor-pointer transition-colors hover:bg-[#F9F9F9] ${flashedIds.has(payment.id) ? "bg-emerald-50" : ""}`}
+                className={`group cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#F9F9F9] hover:shadow-sm hover:border-l-2 hover:border-l-[var(--pluto-500)] active:bg-[#F5F5F5] active:scale-[0.995] ${flashedIds.has(payment.id) ? "bg-emerald-50" : ""}`}
               >
                 <td className="px-3 py-4 sm:px-5"><StatusBadge status={payment.status} /></td>
                 <td className="px-3 py-4 sm:px-5">
@@ -550,80 +550,14 @@ export default function RecentPayments({
                 </td>
                 <td className="px-3 py-4 sm:px-5">
                   <button onClick={e => { e.stopPropagation(); setSelectedPayment(payment.id); setIsSheetOpen(true); }}
-                    className="rounded-lg border border-[#E8E8E8] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-[#F5F5F5] transition-all">
+                    className="rounded-lg border border-[#E8E8E8] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-[var(--pluto-50)] hover:border-[var(--pluto-400)] hover:text-[var(--pluto-700)] hover:shadow-sm active:scale-95 transition-all duration-200">
                     View →
                   </button>
                 </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F0F0F0]">
-              {sortedPayments.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-3 sm:px-5 py-12 text-center text-sm text-[#6B6B6B]"
-                  >
-                    No payments match your filters.
-                  </td>
-                </tr>
-              ) : (
-                sortedPayments.map((payment) => (
-                  <tr
-                    key={payment.id}
-                    onClick={() => {
-                      setSelectedPayment(payment.id);
-                      setIsSheetOpen(true);
-                    }}
-                    className={`group cursor-pointer transition-colors hover:bg-[#F9F9F9] active:bg-[#F5F5F5] ${flashedIds.has(payment.id) ? "bg-emerald-50" : ""}`}
-                  >
-                    <td className="px-3 sm:px-5 py-3 sm:py-4">
-                      <StatusBadge status={payment.status} />
-                    </td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4">
-                      <span className="font-bold text-[#0A0A0A] text-sm sm:text-base">
-                        {payment.amount}
-                      </span>
-                      <span className="ml-1.5 text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B]">
-                        {payment.asset}
-                      </span>
-                    </td>
-                    <td className="hidden px-3 sm:px-5 py-3 sm:py-4 sm:table-cell">
-                      <code className="font-mono text-xs text-[#6B6B6B]">
-                        {payment.recipient.slice(0, 8)}…
-                        {payment.recipient.slice(-6)}
-                      </code>
-                    </td>
-                    <td className="hidden px-3 sm:px-5 py-3 sm:py-4 md:table-cell text-sm text-[#6B6B6B] max-w-[160px] truncate">
-                      {payment.description || (
-                        <span className="text-[#C0C0C0]">—</span>
-                      )}
-                    </td>
-                    <td className="hidden px-3 sm:px-5 py-3 sm:py-4 lg:table-cell text-sm text-[#6B6B6B]">
-                      {new Date(payment.created_at).toLocaleDateString(locale, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedPayment(payment.id);
-                          setIsSheetOpen(true);
-                        }}
-                        className="rounded-lg border border-[#E8E8E8] bg-white px-2 sm:px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0A0A0A] sm:opacity-0 sm:group-hover:opacity-100 hover:bg-[#F5F5F5] transition-all touch-manipulation min-h-[36px]"
-                      >
-                        <span className="hidden sm:inline">View →</span>
-                        <span className="sm:hidden">→</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            )))}
+          </tbody>
+        </table>
       </div>
 
       {/* Pagination */}
