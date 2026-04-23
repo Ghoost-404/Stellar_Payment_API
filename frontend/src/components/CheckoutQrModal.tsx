@@ -47,9 +47,15 @@ export default function CheckoutQrModal({
         <p className="text-sm text-slate-400">{t("qrModalDescription")}</p>
         <div
           ref={qrWrapperRef}
-          className="flex items-center justify-center rounded-2xl border border-white/10 bg-white p-5"
+          className="flex items-center justify-center rounded-2xl border border-white/10 bg-white p-5 transition-transform hover:scale-[1.02] shadow-[0_0_30px_rgba(45,212,191,0.1)] dark:shadow-[0_0_30px_rgba(0,0,0,0.3)]"
         >
-          <QRCodeCanvas value={qrValue} size={260} level="M" includeMargin />
+          <QRCodeCanvas
+            value={qrValue}
+            size={512}
+            level="H"
+            includeMargin
+            style={{ width: "100%", height: "auto", maxWidth: "240px" }}
+          />
         </div>
         <button
           type="button"

@@ -15,7 +15,8 @@ import { useTranslations } from "next-intl";
 import FirstApiKeyModal from "@/components/FirstApiKeyModal";
 import PaymentMetrics from "@/components/PaymentMetrics";
 import RecentPayments from "@/components/RecentPayments";
-import WithdrawModal from "@/components/WithdrawModal";
+import WithdrawalModal from "@/components/WithdrawalModal";
+import FirstPaymentCelebration from "@/components/FirstPaymentCelebration";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboardPage");
@@ -119,8 +120,8 @@ export default function DashboardPage() {
         <section className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white">Recent Activity</h2>
-            <Link 
-              href="/payments" 
+            <Link
+              href="/payments"
               className="group flex items-center gap-1.5 text-sm text-mint hover:text-glow transition-all"
             >
               View all payments
@@ -137,7 +138,7 @@ export default function DashboardPage() {
 
       <FirstApiKeyModal isOpen={isFirstKeyModalOpen} onClose={() => setIsFirstKeyModalOpen(false)} />
       <FirstPaymentCelebration />
-      <WithdrawModal isOpen={isWithdrawOpen} onClose={() => setIsWithdrawOpen(false)} />
+      <WithdrawalModal isOpen={isWithdrawOpen} onClose={() => setIsWithdrawOpen(false)} />
     </div>
   );
 }
