@@ -9,6 +9,10 @@ import { Spinner } from "@/components/ui/Spinner";
 import { usePayment } from "@/lib/usePayment";
 import { useAssetMetadata } from "@/lib/useAssetMetadata";
 import { getAccountBalances, type AssetBalance } from "@/lib/stellar";
+import {
+  didWalletAccountSwitch,
+  sortSupportedAssetsByBalance,
+} from "@/lib/checkout-balance-sync";
 import { createReceiptPdf } from "@/lib/receipt-pdf";
 import CheckoutQrModal from "@/components/CheckoutQrModal";
 import CopyButton from "@/components/CopyButton";
@@ -257,7 +261,7 @@ export default function PaymentPage() {
 
   useEffect(() => {
     if (!walletPublicKey) return;
-    if (previousWalletPublicKey.current && previousWalletPublicKey.current !== walletPublicKey) {
+    if (didWalletAccountSwitch(previousWalletPublicKey.current, walletPublicKey)) {
       toast.info("Wallet account switched. Checkout balances updated.");
     }
     previousWalletPublicKey.current = walletPublicKey;
@@ -271,7 +275,7 @@ export default function PaymentPage() {
         const balances = await getAccountBalances(walletPublicKey, horizonUrl);
         setWalletBalances(balances);
         const supported = assetMetadata.map(a => a.code);
-        const sorted = [...supported].sort((a, b) => parseFloat(balances.find(x => x.code === b)?.balance || "0") - parseFloat(balances.find(x => x.code === a)?.balance || "0"));
+        const sorted = sortSupportedAssetsByBalance(supported, balances);
         setSortedSourceAssets(sorted);
         if (sorted.length > 0) setSourceAsset(sorted[0]);
       } catch { }
