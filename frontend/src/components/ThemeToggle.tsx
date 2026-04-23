@@ -1,45 +1,77 @@
 "use client";
 
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useThemeState, useThemeActions } from "@/lib/theme-context";
+import { useCallback } from "react";
 
 export default function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { theme, resolvedTheme, isMounted, isLoading, error } = useThemeState();
+  const { toggleTheme, clearError } = useThemeActions();
 
-  // Avoid hydration mismatch by only rendering after mount
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const handleThemeToggle = useCallback(() => {
+    if (error) {
+      clearError();
+    }
+    toggleTheme();
+  }, [toggleTheme, error, clearError]);
 
-  if (!mounted) {
+  if (!isMounted || isLoading) {
     return (
-      <button className="h-9 w-9 rounded-lg border border-white/10 bg-white/5" aria-label="Loading theme settings" />
+      <button 
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 transition-all hover:bg-white/10 active:scale-95"
+        aria-label="Loading theme settings"
+        disabled
+      >
+        <div className="h-5 w-5 animate-pulse rounded bg-white/20" />
+      </button>
     );
   }
 
-  const cycleTheme = () => {
-    const themes = ["light", "dark", "system"];
-    const currentIndex = themes.indexOf(theme || "system");
-    const nextIndex = (currentIndex + 1) % themes.length;
-    setTheme(themes[nextIndex]);
+  const getAriaLabel = () => {
+    if (error) return "Theme toggle with error, click to retry";
+    return `Current theme: ${theme || 'system'}, click to switch theme`;
+  };
+
+  const getTitle = () => {
+    if (error) return `Theme error: ${error}. Click to retry.`;
+    if (theme === 'system') return `Theme: System (${resolvedTheme})`;
+    return `Theme: ${theme}`;
   };
 
   return (
     <button
-      onClick={cycleTheme}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 transition-all hover:bg-white/10 active:scale-95"
-      aria-label={`Switch theme (current: ${theme})`}
-      title={theme === 'system' ? `Theme: System (${resolvedTheme})` : `Theme: ${theme}`}
+      onClick={handleThemeToggle}
+      className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all active:scale-95 ${
+        error 
+          ? "border-red-500/50 bg-red-500/10 hover:bg-red-500/20" 
+          : "border-white/10 bg-white/5 hover:bg-white/10"
+      }`}
+      aria-label={getAriaLabel()}
+      title={getTitle()}
+      disabled={isLoading}
     >
-      {theme === "light" ? (
+      {error ? (
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="h-5 w-5 text-amber-500"
+          className="h-5 w-5 text-red-500"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+          />
+        </svg>
+      ) : theme === "light" ? (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          className="h-5 w-5 text-amber-500 transition-colors"
         >
           <path
             strokeLinecap="round"
@@ -54,7 +86,7 @@ export default function ThemeToggle() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="h-5 w-5 text-accent"
+          className="h-5 w-5 text-accent transition-colors"
         >
           <path
             strokeLinecap="round"
@@ -70,7 +102,7 @@ export default function ThemeToggle() {
             viewBox="0 0 24 24"
             strokeWidth={1.5}
             stroke="currentColor"
-            className="h-5 w-5 text-slate-400"
+            className="h-5 w-5 text-slate-400 transition-colors"
           >
             <path
               strokeLinecap="round"
@@ -79,7 +111,9 @@ export default function ThemeToggle() {
             />
           </svg>
           <div className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2 items-center justify-center">
-            <div className={`h-1.5 w-1.5 rounded-full ${resolvedTheme === 'dark' ? 'bg-accent' : 'bg-amber-500'}`} />
+            <div className={`h-1.5 w-1.5 rounded-full transition-colors ${
+              resolvedTheme === 'dark' ? 'bg-accent' : 'bg-amber-500'
+            }`} />
           </div>
         </div>
       )}
