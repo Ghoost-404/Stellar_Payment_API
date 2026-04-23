@@ -64,7 +64,7 @@ test.describe("ActivityFeed Component - Hover States", () => {
                   <h3 class="font-semibold text-white text-sm">Live Activity Feed</h3>
                 </div>
                 <div class="space-y-3 p-4 sm:hidden">
-                  <div tabindex="0" role="row" class="rounded-lg border p-3 outline-none transition-all duration-200 ease-in-out hover:border-l-2 hover:border-l-[var(--pluto-500)] hover:bg-[var(--pluto-50)] hover:shadow-sm active:scale-[0.985] active:bg-[var(--pluto-100)] focus-visible:ring-2 focus-visible:ring-[var(--pluto-500)] focus-visible:ring-offset-2 cursor-pointer border-[#E8E8E8] bg-white">
+                  <div tabindex="0" role="row" class="rounded-lg border p-3 outline-none transition-all duration-200 ease-in-out hover:border-l-2 hover:border-l-pluto-500 hover:bg-pluto-50 hover:shadow-sm active:scale-[0.985] active:bg-pluto-100 focus-visible:ring-2 focus-visible:ring-pluto-500 focus-visible:ring-offset-2 cursor-pointer border-[#E8E8E8] bg-white">
                     <div class="mb-2 flex items-start justify-between gap-3">
                       <p class="truncate text-sm font-semibold text-[#0A0A0A]">Test Payment 1</p>
                       <div class="shrink-0 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-tight bg-[#0A0A0A] text-white">confirmed</div>
@@ -78,7 +78,7 @@ test.describe("ActivityFeed Component - Hover States", () => {
                 <div class="hidden overflow-x-auto sm:block">
                   <table class="w-full text-left border-collapse">
                     <tbody class="divide-y divide-[#E8E8E8]">
-                      <tr tabindex="0" role="row" class="group cursor-pointer outline-none transition-all duration-200 ease-in-out hover:bg-[var(--pluto-50)] hover:shadow-sm hover:border-l-2 hover:border-l-[var(--pluto-500)] active:bg-[var(--pluto-100)] active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pluto-500)] bg-white">
+                      <tr tabindex="0" role="row" class="group cursor-pointer outline-none transition-all duration-200 ease-in-out hover:bg-pluto-50 hover:shadow-sm hover:border-l-2 hover:border-l-pluto-500 active:bg-pluto-100 active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pluto-500 bg-white">
                         <td class="px-6 py-4">
                           <div class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-tight bg-[#0A0A0A] text-white">confirmed</div>
                         </td>
@@ -132,16 +132,17 @@ test.describe("ActivityFeed Component - Hover States", () => {
 
   test("desktop table row hover states apply Pluto theme colors", async ({ page }) => {
     const tableRow = page.locator('.hidden.sm\\:block tr[role="row"]').first();
+    const tableCell = tableRow.locator('td').first();
 
     // Check initial state
     await expect(tableRow).toHaveCSS("background-color", "rgba(255, 255, 255, 1)");
-    await expect(tableRow).toHaveCSS("border-left-width", "0px");
+    await expect(tableCell).toHaveCSS("border-left-width", "0px");
 
     // Hover and check styles
     await tableRow.hover();
     await expect(tableRow).toHaveCSS("background-color", "rgba(240, 246, 251, 1)"); // --pluto-50
-    await expect(tableRow).toHaveCSS("border-left-color", "rgba(74, 111, 165, 1)"); // --pluto-500
-    await expect(tableRow).toHaveCSS("border-left-width", "2px");
+    await expect(tableCell).toHaveCSS("border-left-color", "rgba(74, 111, 165, 1)"); // --pluto-500
+    await expect(tableCell).toHaveCSS("border-left-width", "2px");
     await expect(tableRow).toHaveCSS("box-shadow", /rgba/); // shadow-sm applied
   });
 

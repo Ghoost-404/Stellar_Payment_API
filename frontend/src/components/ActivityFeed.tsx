@@ -178,9 +178,9 @@ export default function ActivityFeed() {
             aria-label={`Payment ${payment.description || "Transaction"} for ${formatAmount(payment.amount, locale, hideCents)} ${payment.asset}`}
             className={`rounded-lg border p-3 outline-none
               transition-all duration-200 ease-in-out
-              hover:border-l-2 hover:border-l-[var(--pluto-500)] hover:bg-[var(--pluto-50)] hover:shadow-sm
-              active:scale-[0.985] active:bg-[var(--pluto-100)]
-              focus-visible:ring-2 focus-visible:ring-[var(--pluto-500)] focus-visible:ring-offset-2
+              hover:border-l-2 hover:border-l-pluto-500 hover:bg-pluto-50 hover:shadow-sm
+              active:scale-[0.985] active:bg-pluto-100
+              focus-visible:ring-2 focus-visible:ring-pluto-500 focus-visible:ring-offset-2
               cursor-pointer
               ${i % 2 === 0 ? "border-[#E8E8E8] bg-white" : "border-[#ECECEC] bg-[#F9F9F9]"}`}
           >
@@ -216,7 +216,7 @@ export default function ActivityFeed() {
       </div>
 
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-separate border-spacing-0">
           <thead>
             <tr className="bg-[#F9F9F9] border-b border-[#E8E8E8]">
               <th className="px-6 py-3 text-[11px] font-bold text-[#6B6B6B] uppercase tracking-wider">
@@ -245,13 +245,13 @@ export default function ActivityFeed() {
                    transition-all duration-200 corrects the previously broken "transition-all 150ms ease" syntax. */
                 className={`group cursor-pointer outline-none
                   transition-all duration-200 ease-in-out
-                  hover:bg-[var(--pluto-50)] hover:shadow-sm hover:border-l-2 hover:border-l-[var(--pluto-500)]
-                  active:bg-[var(--pluto-100)] active:scale-[0.985]
-                  focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pluto-500)]
+                  hover:bg-pluto-50 hover:shadow-sm
+                  active:bg-pluto-100 active:scale-[0.985]
+                  focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pluto-500
                   ${i % 2 === 0 ? "bg-white" : "bg-[#F9F9F9]"}`}
                 aria-label={`Payment ${payment.description || "Transaction"} for ${formatAmount(payment.amount, locale, hideCents)} ${payment.asset}`}
               >
-                <td className="px-6 py-4">
+                <td className="border-l-0 border-transparent px-6 py-4 transition-all duration-200 group-hover:border-l-2 group-hover:border-l-pluto-500">
                   <div
                     className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-tight ${payment.status === "confirmed"
                         ? "bg-[#0A0A0A] text-white"
