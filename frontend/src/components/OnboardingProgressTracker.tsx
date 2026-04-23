@@ -137,19 +137,22 @@ export const OnboardingProgressTracker: React.FC<
   }, [sortedSteps]);
 
   /**
-   * Handle step click with accessibility announcement
+   * Handle step click with optimistic updates and accessibility announcement
    */
   const handleStepClick = useCallback(
     (stepId: string) => {
       const step = sortedSteps.find((s) => s.id === stepId);
       if (!step) return;
 
+      // Optimistic update: immediately update current step
       setCurrentStep(stepId);
-      onStepChange?.(stepId);
 
-      // Announce to screen readers
+      // Announce to screen readers immediately
       const announcement = `${t("onboarding.stepProgress") || "Step"} ${step.order}: ${step.title}. ${step.description}`;
       setAnnouncementText(announcement);
+
+      // Call the callback (which may handle server-side updates)
+      onStepChange?.(stepId);
     },
     [sortedSteps, onStepChange, t]
   );
