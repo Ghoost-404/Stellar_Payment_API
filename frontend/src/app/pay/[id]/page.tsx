@@ -495,16 +495,17 @@ export default function PaymentPage() {
                       <p className="text-center text-[10px] text-[#6B6B6B] font-medium">{t("connectedVia", { provider: activeProvider.name ?? "" })}</p>
 
                       {sortedSourceAssets.length > 0 && (
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B]">Payment Asset</label>
+                        <div className="flex flex-col gap-1.5" aria-live="polite" aria-atomic="true">
+                          <label htmlFor="source-asset-select" className="text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B]">Payment Asset</label>
                           <div className="relative">
-                            <select value={sourceAsset} onChange={(e) => setSourceAsset(e.target.value)}
-                              className="w-full appearance-none rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-4 py-3 text-sm font-medium text-[#0A0A0A] focus:border-[#0A0A0A] focus:outline-none transition-colors">
+                            <select id="source-asset-select" value={sourceAsset} onChange={(e) => setSourceAsset(e.target.value)}
+                              className="w-full appearance-none rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-4 py-3 text-sm font-medium text-[#0A0A0A] focus:border-[#0A0A0A] focus:outline-none transition-colors"
+                              aria-label="Select payment asset and view available balances">
                               {sortedSourceAssets.map(code => (
                                 <option key={code} value={code}>{code} — {parseFloat(walletBalances.find(b => b.code === code)?.balance || "0").toFixed(2)}</option>
                               ))}
                             </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#6B6B6B]">
+                            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#6B6B6B]" aria-hidden="true">
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                             </div>
                           </div>

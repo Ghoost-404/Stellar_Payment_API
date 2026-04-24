@@ -117,10 +117,13 @@ export function SupportPanel() {
         {/* Amount Input */}
         <div className="space-y-1.5">
           <div className="flex justify-between items-end">
-            <label className="text-xs font-semibold text-white">Amount</label>
-            <div className="text-[10px] text-slate-400">
+            <label className="text-xs font-semibold text-white" htmlFor="amount-input">Amount</label>
+            <div className="text-[10px] text-slate-400" aria-live="polite" aria-atomic="true">
               {loadingBalance ? (
-                <Spinner size="xs" />
+                <div className="flex items-center gap-2">
+                  <span className="sr-only">Loading balance...</span>
+                  <Spinner size="xs" aria-hidden="true" />
+                </div>
               ) : isUnfunded ? (
                 <a 
                   href="https://laboratory.stellar.org/#account-creator?network=testnet" 
@@ -131,22 +134,27 @@ export function SupportPanel() {
                   Unfunded (Fund on Testnet)
                 </a>
               ) : (
-                `Available: ${selectedBalance} ${assetCode}`
+                <span aria-label={`Available balance: ${selectedBalance} ${assetCode}`}>
+                  Available: {selectedBalance} {assetCode}
+                </span>
               )}
             </div>
           </div>
           <div className="relative">
             <input
+              id="amount-input"
               type="number"
               value={amount}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.00"
+              aria-invalid={!!amountError}
+              aria-errormessage={amountError ? "amount-error" : undefined}
               className={`w-full rounded-xl border bg-white/5 p-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-1 ${
                 amountError ? "border-red-500/50 focus:ring-red-500/50" : "border-white/10 focus:border-mint/50 focus:ring-mint/50"
               }`}
             />
             {amountError && (
-              <p className="mt-1 text-[10px] text-red-400">{amountError}</p>
+              <p id="amount-error" className="mt-1 text-[10px] text-red-400" aria-live="assertive">{amountError}</p>
             )}
           </div>
         </div>
