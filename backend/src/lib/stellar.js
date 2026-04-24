@@ -660,6 +660,7 @@ export async function verifyTransactionSignature(txHash) {
 
   let totalWeight = 0;
   let validSignatureCount = 0;
+  const usedSigners = new Set(); // Prevent signature replay
 
   for (const decoratedSig of signatures) {
     // hint is the last 4 bytes of the public key — use it to narrow candidates
@@ -667,6 +668,8 @@ export async function verifyTransactionSignature(txHash) {
     const sigBytes = decoratedSig.signature();
 
     for (const [publicKey, weight] of signerWeightMap) {
+      if (usedSigners.has(publicKey)) continue;
+
       // Quick hint check before expensive crypto
       const keyPair = StellarSdk.Keypair.fromPublicKey(publicKey);
       const keyHint = keyPair.signatureHint();
@@ -679,7 +682,8 @@ export async function verifyTransactionSignature(txHash) {
         if (isValid) {
           totalWeight += weight;
           validSignatureCount += 1;
-          break; // each signer can only contribute once
+          usedSigners.add(publicKey);
+          break; // move to next signature
         }
       } catch {
         // Malformed signature bytes — skip

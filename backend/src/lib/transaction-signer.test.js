@@ -218,6 +218,40 @@ describe("verifyTransactionSignature — cryptographic verification (Issue #630)
     });
   });
 
+  // ── Security & Replay Prevention ────────────────────────────────────────────
+
+  describe("security & replay prevention", () => {
+    it("returns valid=false when the same signature is duplicated to artificially inflate weight", async () => {
+      mockTxCall.mockResolvedValue({ envelope_xdr: "valid-xdr" });
+      mockLoadAccount.mockResolvedValue({
+        thresholds: { med_threshold: 2 },
+        signers: [{ key: "GABC123", weight: 1 }],
+      });
+      
+      const { Transaction } = await import("stellar-sdk");
+      Transaction.mockImplementationOnce(() => ({
+        source: "GABC123",
+        hash: vi.fn(() => Buffer.from("txhashbytes")),
+        signatures: [
+          {
+            hint: vi.fn(() => Buffer.from([0xde, 0xad, 0xbe, 0xef])),
+            signature: vi.fn(() => Buffer.from("sigbytes")),
+          },
+          {
+            hint: vi.fn(() => Buffer.from([0xde, 0xad, 0xbe, 0xef])),
+            signature: vi.fn(() => Buffer.from("sigbytes")),
+          },
+        ],
+      }));
+      mockVerify.mockReturnValue(true);
+
+      const result = await verifyTransactionSignature("tx-replay");
+      expect(result.valid).toBe(false);
+      expect(result.thresholdMet).toBe(false);
+      expect(result.reason).toMatch(/insufficient signing weight/i);
+    });
+  });
+
   // ── Insufficient weight ─────────────────────────────────────────────────────
 
   describe("insufficient signing weight", () => {
