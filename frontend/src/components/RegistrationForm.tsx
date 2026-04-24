@@ -14,6 +14,12 @@ import { Spinner } from "./ui/Spinner";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BUSINESS_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9\s&'.,-]{1,79}$/;
+const FIELD_BASE_CLASSES =
+  "rounded-2xl border bg-[#F9F9F9] p-4 text-sm font-bold text-[#0A0A0A] placeholder-[#A0A0A0] transition-all duration-200 focus:bg-white focus:outline-none motion-safe:hover:-translate-y-0.5";
+const FIELD_THEME_CLASSES =
+  "border-[#E8E8E8] hover:border-pluto-300 hover:bg-white hover:shadow-[0_14px_30px_rgba(13,27,46,0.06)] focus:border-pluto-500 focus:shadow-[0_0_0_1px_rgba(74,111,165,0.18),0_18px_36px_rgba(13,27,46,0.08)]";
+const FIELD_ERROR_CLASSES =
+  "border-red-500/50 hover:border-red-400 focus:border-red-500 focus:shadow-[0_0_0_1px_rgba(239,68,68,0.16),0_16px_32px_rgba(239,68,68,0.08)]";
 
 // Memoized password strength indicator to prevent unnecessary re-renders
 const PasswordStrengthIndicator = React.memo(
@@ -225,7 +231,7 @@ const RegistrationForm = React.memo(function RegistrationForm() {
 
         <a
           href="/dashboard"
-          className="text-center text-xs font-bold uppercase tracking-widest text-[#6B6B6B] transition-colors underline underline-offset-8 hover:text-[#0A0A0A]"
+          className="text-center text-xs font-bold uppercase tracking-widest text-[#6B6B6B] underline underline-offset-8 decoration-[#B8D4E8] transition-colors duration-200 hover:text-pluto-600 focus-visible:text-pluto-700"
         >
           Enter Dashboard
         </a>
@@ -271,10 +277,10 @@ const RegistrationForm = React.memo(function RegistrationForm() {
             aria-describedby={
               businessNameError ? "business-name-error" : undefined
             }
-            className={`rounded-2xl border bg-[#F9F9F9] p-4 text-sm font-bold text-[#0A0A0A] placeholder-[#A0A0A0] transition-all focus:bg-white focus:outline-none ${
+            className={`${FIELD_BASE_CLASSES} ${
               businessNameError
-                ? "border-red-500/50 focus:border-red-500"
-                : "border-[#E8E8E8] focus:border-[#0A0A0A]"
+                ? FIELD_ERROR_CLASSES
+                : FIELD_THEME_CLASSES
             }`}
             placeholder="PLUTO Merchant"
           />
@@ -308,10 +314,10 @@ const RegistrationForm = React.memo(function RegistrationForm() {
             }}
             aria-invalid={Boolean(emailError)}
             aria-describedby={emailError ? "primary-email-error" : undefined}
-            className={`rounded-2xl border bg-[#F9F9F9] p-4 text-sm font-bold text-[#0A0A0A] placeholder-[#A0A0A0] transition-all focus:bg-white focus:outline-none ${
+            className={`${FIELD_BASE_CLASSES} ${
               emailError
-                ? "border-red-500/50 focus:border-red-500"
-                : "border-[#E8E8E8] focus:border-[#0A0A0A]"
+                ? FIELD_ERROR_CLASSES
+                : FIELD_THEME_CLASSES
             }`}
             placeholder="owner@business.com"
           />
@@ -344,10 +350,10 @@ const RegistrationForm = React.memo(function RegistrationForm() {
             }}
             aria-invalid={Boolean(passwordError)}
             aria-describedby={passwordError ? "password-error" : undefined}
-            className={`rounded-2xl border bg-[#F9F9F9] p-4 text-sm font-bold text-[#0A0A0A] placeholder-[#A0A0A0] transition-all focus:bg-white focus:outline-none ${
+            className={`${FIELD_BASE_CLASSES} ${
               passwordError
-                ? "border-red-500/50 focus:border-red-500"
-                : "border-[#E8E8E8] focus:border-[#0A0A0A]"
+                ? FIELD_ERROR_CLASSES
+                : FIELD_THEME_CLASSES
             }`}
             placeholder="••••••••"
           />
@@ -387,10 +393,10 @@ const RegistrationForm = React.memo(function RegistrationForm() {
             aria-describedby={
               notificationEmailError ? "notification-email-error" : undefined
             }
-            className={`rounded-2xl border bg-[#F9F9F9] p-4 text-sm font-bold text-[#0A0A0A] placeholder-[#A0A0A0] transition-all focus:bg-white focus:outline-none ${
+            className={`${FIELD_BASE_CLASSES} ${
               notificationEmailError
-                ? "border-red-500/50 focus:border-red-500"
-                : "border-[#E8E8E8] focus:border-[#0A0A0A]"
+                ? FIELD_ERROR_CLASSES
+                : FIELD_THEME_CLASSES
             }`}
             placeholder="alerts@business.com"
           />
@@ -409,15 +415,19 @@ const RegistrationForm = React.memo(function RegistrationForm() {
       <button
         type="submit"
         disabled={loading || !isFormValid}
-        className="group relative flex h-16 items-center justify-center rounded-2xl bg-[#0A0A0A] px-8 text-xs font-bold uppercase tracking-[0.3em] text-white transition-all hover:bg-black shadow-xl shadow-black/10 disabled:cursor-not-allowed disabled:opacity-50"
+        className="group relative flex h-16 items-center justify-center overflow-hidden rounded-2xl bg-pluto-900 px-8 text-xs font-bold uppercase tracking-[0.3em] text-white shadow-[0_18px_40px_rgba(13,27,46,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-pluto-700 hover:shadow-[0_26px_50px_rgba(13,27,46,0.24)] focus-visible:bg-pluto-800 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
       >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(184,212,232,0.32),transparent_58%)] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+        />
         {loading ? (
-          <span className="flex items-center gap-3">
+          <span className="relative z-10 flex items-center gap-3">
             <Spinner size="sm" className="text-white" />
             Initializing Account...
           </span>
         ) : (
-          "Create Professional Profile"
+          <span className="relative z-10">Create Professional Profile</span>
         )}
       </button>
     </form>

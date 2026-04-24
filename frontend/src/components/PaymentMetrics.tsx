@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -153,10 +153,9 @@ export default function PaymentMetrics({
       .catch((fetchError) => {
         if (fetchError instanceof Error && fetchError.name === "AbortError")
           return;
-        setError(
-          fetchError instanceof Error
-            ? fetchError.message
-            : t("fetchVolumeFailed"),
+        setError((prev) =>
+          prev ??
+          (fetchError instanceof Error ? fetchError.message : t("fetchVolumeFailed")),
         );
       })
       .finally(() => setLoading(false));
