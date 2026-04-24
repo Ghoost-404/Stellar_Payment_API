@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -262,7 +263,10 @@ export default function PaymentPage() {
   useEffect(() => {
     if (!walletPublicKey) return;
     if (didWalletAccountSwitch(previousWalletPublicKey.current, walletPublicKey)) {
-      toast.info("Wallet account switched. Checkout balances updated.");
+      // Optimistic update: clear balances immediately when wallet switches
+      setWalletBalances([]);
+      setSortedSourceAssets([]);
+      toast.info("Wallet account switched. Updating balances...");
     }
     previousWalletPublicKey.current = walletPublicKey;
   }, [walletPublicKey]);
@@ -501,7 +505,13 @@ export default function PaymentPage() {
                       {sortedSourceAssets.length > 0 && (
                         <div className="flex flex-col gap-1.5">
                           <label className="text-[10px] font-bold uppercase tracking-widest text-[#6B6B6B]">Payment Asset</label>
-                          <div className="relative">
+                          <motion.div
+                            className="relative"
+                            key={walletBalances.length} // Re-animate when balances update
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                          >
                             <select value={sourceAsset} onChange={(e) => setSourceAsset(e.target.value)}
                               className="w-full appearance-none rounded-xl border border-[#E8E8E8] bg-[#F9F9F9] px-4 py-3 text-sm font-medium text-[#0A0A0A] focus:border-[#0A0A0A] focus:outline-none transition-colors">
                               {sortedSourceAssets.map(code => (
@@ -511,7 +521,7 @@ export default function PaymentPage() {
                             <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#6B6B6B]">
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                             </div>
-                          </div>
+                          </motion.div>
                         </div>
                       )}
 

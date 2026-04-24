@@ -52,4 +52,40 @@ describe("checkout balance sync helpers", () => {
       ),
     ).toBe(false);
   });
+
+  it("does not flag a switch when the same wallet reconnects", () => {
+    expect(
+      didWalletAccountSwitch(
+        "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+        "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+      ),
+    ).toBe(false);
+  });
+
+  it("does not flag a switch when wallet disconnects", () => {
+    expect(
+      didWalletAccountSwitch(
+        "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+        null,
+      ),
+    ).toBe(false);
+  });
+
+  it("handles non-finite balance values safely", () => {
+    const badBalances = [
+      { code: "XLM", issuer: null, balance: "NaN" },
+      { code: "USDC", issuer: "issuer", balance: "Infinity" },
+    ];
+    expect(getBalanceAmount(badBalances, "XLM")).toBe(0);
+    expect(getBalanceAmount(badBalances, "USDC")).toBe(0);
+  });
+
+  it("sorts correctly when some assets have zero or missing balances", () => {
+    const partialBalances = [
+      { code: "XLM", issuer: null, balance: "5.0000000" },
+    ];
+    expect(
+      sortSupportedAssetsByBalance(["USDC", "XLM", "AQUA"], partialBalances),
+    ).toEqual(["XLM", "USDC", "AQUA"]);
+  });
 });

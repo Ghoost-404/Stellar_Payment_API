@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useReducer } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useTranslations } from "next-intl";
 
@@ -27,6 +27,35 @@ interface OnboardingProgressTrackerProps {
   showStepNumbers?: boolean;
   orientation?: "vertical" | "horizontal";
   compact?: boolean;
+}
+
+/**
+ * State for onboarding tracker
+ */
+interface OnboardingState {
+  currentStep: string | undefined;
+  announcementText: string;
+}
+
+/**
+ * Actions for onboarding state
+ */
+type OnboardingAction =
+  | { type: "SET_CURRENT_STEP"; payload: string }
+  | { type: "SET_ANNOUNCEMENT"; payload: string };
+
+/**
+ * Reducer for onboarding state
+ */
+function onboardingReducer(state: OnboardingState, action: OnboardingAction): OnboardingState {
+  switch (action.type) {
+    case "SET_CURRENT_STEP":
+      return { ...state, currentStep: action.payload };
+    case "SET_ANNOUNCEMENT":
+      return { ...state, announcementText: action.payload };
+    default:
+      return state;
+  }
 }
 
 /**
@@ -107,10 +136,10 @@ export const OnboardingProgressTracker: React.FC<
   compact = false,
 }) => {
   const t = useTranslations();
-  const [currentStep, setCurrentStep] = useState<string | undefined>(
-    currentStepProp || steps[0]?.id
-  );
-  const [announcementText, setAnnouncementText] = useState<string>("");
+  const [state, dispatch] = useReducer(onboardingReducer, {
+    currentStep: currentStepProp || steps[0]?.id,
+    announcementText: "",
+  });
 
   /**
    * Sort steps by order
@@ -145,11 +174,11 @@ export const OnboardingProgressTracker: React.FC<
       if (!step) return;
 
       // Optimistic update: immediately update current step
-      setCurrentStep(stepId);
+      dispatch({ type: "SET_CURRENT_STEP", payload: stepId });
 
       // Announce to screen readers immediately
       const announcement = `${t("onboarding.stepProgress") || "Step"} ${step.order}: ${step.title}. ${step.description}`;
-      setAnnouncementText(announcement);
+      dispatch({ type: "SET_ANNOUNCEMENT", payload: announcement });
 
       // Call the callback (which may handle server-side updates)
       onStepChange?.(stepId);
@@ -163,7 +192,7 @@ export const OnboardingProgressTracker: React.FC<
   useEffect(() => {
     if (isOnboardingComplete && sortedSteps.length > 0) {
       const announcement = t("onboarding.completed") || "Onboarding completed";
-      setAnnouncementText(announcement);
+      dispatch({ type: "SET_ANNOUNCEMENT", payload: announcement });
       onComplete?.();
     }
   }, [isOnboardingComplete, sortedSteps.length, onComplete, t]);
@@ -173,7 +202,7 @@ export const OnboardingProgressTracker: React.FC<
    */
   useEffect(() => {
     const StatusMessage = `${t("onboarding.progress") || "Progress"}: ${progressPercentage}% complete`;
-    setAnnouncementText(StatusMessage);
+    dispatch({ type: "SET_ANNOUNCEMENT", payload: StatusMessage });
   }, [progressPercentage, t]);
 
   return (
@@ -185,14 +214,14 @@ export const OnboardingProgressTracker: React.FC<
       aria-atomic="false"
     >
       {/* Screen reader announcement area */}
-      <div
-        className="sr-only"
-        role="status"
-        aria-live="assertive"
-        aria-atomic="true"
-      >
-        {announcementText}
-      </div>
+          <div
+            className="sr-only"
+            role="status"
+            aria-live="assertive"
+            aria-atomic="true"
+          >
+            {state.announcementText}
+          </div>
 
       {/* Container */}
       <div
@@ -268,7 +297,7 @@ export const OnboardingProgressTracker: React.FC<
         >
           <AnimatePresence mode="popLayout">
             {sortedSteps.map((step, index) => {
-              const isCurrentStep = currentStep === step.id;
+              const isCurrentStep = state.currentStep === step.id;
 
               return (
                 <motion.div

@@ -7,23 +7,23 @@ describe("Theme Context", () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.className = "";
-    
+
     Object.defineProperty(globalThis, "localStorage", {
       value: {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
-        clear: jest.fn(),
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
       },
       writable: true,
     });
 
     Object.defineProperty(globalThis, "window", {
       value: {
-        matchMedia: jest.fn(() => ({
+        matchMedia: vi.fn(() => ({
           matches: false,
-          addEventListener: jest.fn(),
-          removeEventListener: jest.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
         })),
       },
       writable: true,
@@ -33,18 +33,18 @@ describe("Theme Context", () => {
       value: {
         documentElement: {
           classList: {
-            remove: jest.fn(),
-            add: jest.fn(),
+            remove: vi.fn(),
+            add: vi.fn(),
           },
         },
-        querySelector: jest.fn(() => null),
+        querySelector: vi.fn(() => null),
       },
       writable: true,
     });
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const TestComponent = () => {
@@ -88,7 +88,7 @@ describe("Theme Context", () => {
     });
 
     it("loads theme from localStorage", async () => {
-      const mockGetItem = globalThis.localStorage.getItem as jest.Mock;
+      const mockGetItem = globalThis.localStorage.getItem as ReturnType<typeof vi.fn>;
       mockGetItem.mockReturnValue("dark");
 
       renderWithThemeProvider();
@@ -100,11 +100,11 @@ describe("Theme Context", () => {
     });
 
     it("uses system preference when theme is system", async () => {
-      const mockMatchMedia = globalThis.window.matchMedia as jest.Mock;
+      const mockMatchMedia = globalThis.window.matchMedia as ReturnType<typeof vi.fn>;
       mockMatchMedia.mockReturnValue({
         matches: true,
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
       });
 
       renderWithThemeProvider();
@@ -194,7 +194,7 @@ describe("Theme Context", () => {
 
   describe("Error Handling", () => {
     it("handles localStorage errors gracefully and reverts optimistic updates", async () => {
-      const mockSetItem = globalThis.localStorage.setItem as jest.Mock;
+      const mockSetItem = globalThis.localStorage.setItem as ReturnType<typeof vi.fn>;
       mockSetItem.mockImplementation(() => {
         throw new Error("Storage error");
       });
@@ -209,13 +209,12 @@ describe("Theme Context", () => {
 
       await waitFor(() => {
         expect(screen.getByTestId("error")).toHaveTextContent("Storage error");
-        // Theme should be reverted to the previous state (system)
         expect(screen.getByTestId("theme")).toHaveTextContent("system");
       });
     });
 
     it("clears errors correctly", async () => {
-      const mockSetItem = globalThis.localStorage.setItem as jest.Mock;
+      const mockSetItem = globalThis.localStorage.setItem as ReturnType<typeof vi.fn>;
       mockSetItem.mockImplementation(() => {
         throw new Error("Storage error");
       });
@@ -244,15 +243,15 @@ describe("Theme Context", () => {
     it("updates resolved theme when system preference changes", async () => {
       let mediaQueryCallback: ((e: MediaQueryListEvent) => void) | null = null;
       
-      const mockMatchMedia = globalThis.window.matchMedia as jest.Mock;
+      const mockMatchMedia = globalThis.window.matchMedia as ReturnType<typeof vi.fn>;
       mockMatchMedia.mockImplementation((query) => ({
         matches: false,
-        addEventListener: jest.fn((event, callback) => {
+        addEventListener: vi.fn((event, callback) => {
           if (event === "change") {
             mediaQueryCallback = callback as (e: MediaQueryListEvent) => void;
           }
         }),
-        removeEventListener: jest.fn(),
+        removeEventListener: vi.fn(),
       }));
 
       renderWithThemeProvider({ defaultTheme: "system" });
@@ -328,6 +327,241 @@ describe("useThemeActions Hook", () => {
     expect(screen.getByText("Set Light")).toBeInTheDocument();
     expect(screen.getByText("Toggle")).toBeInTheDocument();
     expect(screen.getByText("Clear Error")).toBeInTheDocument();
+  });
+});
+
+describe("Dark Mode Theme Engine", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.className = "";
+
+    Object.defineProperty(globalThis, "localStorage", {
+      value: {
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+      },
+      writable: true,
+    });
+
+    Object.defineProperty(globalThis, "window", {
+      value: {
+        matchMedia: vi.fn(() => ({
+          matches: false,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        })),
+      },
+      writable: true,
+    });
+
+    Object.defineProperty(globalThis, "document", {
+      value: {
+        documentElement: {
+          classList: {
+            remove: vi.fn(),
+            add: vi.fn(),
+          },
+        },
+        querySelector: vi.fn(() => null),
+      },
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const DarkModeTestComponent = () => {
+    const { theme, resolvedTheme, setTheme, toggleTheme, isMounted, isLoading, error, clearError } = useTheme();
+
+    return (
+      <div>
+        <div data-testid="theme">{theme}</div>
+        <div data-testid="resolved-theme">{resolvedTheme}</div>
+        <div data-testid="is-mounted">{isMounted.toString()}</div>
+        <div data-testid="is-loading">{isLoading.toString()}</div>
+        <div data-testid="error">{error || "no-error"}</div>
+        <button onClick={() => setTheme("light")}>Set Light</button>
+        <button onClick={() => setTheme("dark")}>Set Dark</button>
+        <button onClick={() => setTheme("system")}>Set System</button>
+        <button onClick={toggleTheme}>Toggle Theme</button>
+        <button onClick={clearError}>Clear Error</button>
+      </div>
+    );
+  };
+
+  const renderDarkMode = (props = {}) => {
+    return render(
+      <ThemeProvider {...props}>
+        <DarkModeTestComponent />
+      </ThemeProvider>
+    );
+  };
+
+  it("applies dark class to document element when dark theme is set", async () => {
+    renderDarkMode({ defaultTheme: "light" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("is-mounted")).toHaveTextContent("true");
+    });
+
+    fireEvent.click(screen.getByText("Set Dark"));
+
+    await waitFor(() => {
+      expect(globalThis.document.documentElement.classList.remove).toHaveBeenCalledWith("light", "dark");
+      expect(globalThis.document.documentElement.classList.add).toHaveBeenCalledWith("dark");
+    });
+  });
+
+  it("removes dark class and applies light class when switching from dark to light", async () => {
+    renderDarkMode({ defaultTheme: "dark" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("is-mounted")).toHaveTextContent("true");
+    });
+
+    fireEvent.click(screen.getByText("Set Light"));
+
+    await waitFor(() => {
+      expect(globalThis.document.documentElement.classList.remove).toHaveBeenCalledWith("light", "dark");
+      expect(globalThis.document.documentElement.classList.add).toHaveBeenCalledWith("light");
+    });
+  });
+
+  it("resolves system theme to dark when prefers-color-scheme is dark", async () => {
+    const mockMatchMedia = globalThis.window.matchMedia as ReturnType<typeof vi.fn>;
+    mockMatchMedia.mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+
+    renderDarkMode({ defaultTheme: "system" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
+    });
+  });
+
+  it("resolves system theme to light when prefers-color-scheme is light", async () => {
+    const mockMatchMedia = globalThis.window.matchMedia as ReturnType<typeof vi.fn>;
+    mockMatchMedia.mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+
+    renderDarkMode({ defaultTheme: "system" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resolved-theme")).toHaveTextContent("light");
+    });
+  });
+
+  it("updates meta theme-color to dark value when theme is dark", async () => {
+    const mockMeta = { setAttribute: vi.fn() };
+    const mockQuerySelector = globalThis.document.querySelector as ReturnType<typeof vi.fn>;
+    mockQuerySelector.mockReturnValue(mockMeta);
+
+    renderDarkMode({ defaultTheme: "light" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("is-mounted")).toHaveTextContent("true");
+    });
+
+    fireEvent.click(screen.getByText("Set Dark"));
+
+    await waitFor(() => {
+      expect(mockMeta.setAttribute).toHaveBeenCalledWith("content", "#0A0A0A");
+    });
+  });
+
+  it("updates meta theme-color to light value when theme is light", async () => {
+    const mockMeta = { setAttribute: vi.fn() };
+    const mockQuerySelector = globalThis.document.querySelector as ReturnType<typeof vi.fn>;
+    mockQuerySelector.mockReturnValue(mockMeta);
+
+    renderDarkMode({ defaultTheme: "dark" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("is-mounted")).toHaveTextContent("true");
+    });
+
+    fireEvent.click(screen.getByText("Set Light"));
+
+    await waitFor(() => {
+      expect(mockMeta.setAttribute).toHaveBeenCalledWith("content", "#FFFFFF");
+    });
+  });
+
+  it("persists dark theme preference to localStorage", async () => {
+    renderDarkMode({ defaultTheme: "light" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("is-mounted")).toHaveTextContent("true");
+    });
+
+    fireEvent.click(screen.getByText("Set Dark"));
+
+    await waitFor(() => {
+      expect(globalThis.localStorage.setItem).toHaveBeenCalledWith("merchant-theme-preference", "dark");
+    });
+  });
+
+  it("uses custom storageKey for dark theme persistence", async () => {
+    renderDarkMode({ defaultTheme: "light", storageKey: "custom-theme-key" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("is-mounted")).toHaveTextContent("true");
+    });
+
+    fireEvent.click(screen.getByText("Set Dark"));
+
+    await waitFor(() => {
+      expect(globalThis.localStorage.setItem).toHaveBeenCalledWith("custom-theme-key", "dark");
+    });
+  });
+
+  it("supports forcedTheme override for dark mode", async () => {
+    const mockMatchMedia = globalThis.window.matchMedia as ReturnType<typeof vi.fn>;
+    mockMatchMedia.mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+
+    renderDarkMode({ defaultTheme: "system", forcedTheme: "dark" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
+    });
+  });
+
+  it("reverts to previous theme when dark mode setTheme fails", async () => {
+    const mockSetItem = globalThis.localStorage.setItem as ReturnType<typeof vi.fn>;
+    let callCount = 0;
+    mockSetItem.mockImplementation(() => {
+      callCount++;
+      if (callCount > 1) {
+        throw new Error("Storage error");
+      }
+    });
+
+    renderDarkMode({ defaultTheme: "light" });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("is-mounted")).toHaveTextContent("true");
+    });
+
+    fireEvent.click(screen.getByText("Set Dark"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("error")).toHaveTextContent("Storage error");
+      expect(screen.getByTestId("theme")).toHaveTextContent("light");
+    });
   });
 });
 
